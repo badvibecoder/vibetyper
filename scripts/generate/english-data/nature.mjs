@@ -1,0 +1,34 @@
+// english-data/nature.mjs
+// Nature and outdoor paragraphs for the vibetyper English dictionary.
+// Each entry is one paragraph of 3-5 sentences on a single line, separated
+// by single spaces, written on one topic.
+
+export default [
+  'The maple leaves turn brilliant red every October, and autumn winds scatter them across the lawn. The whole street becomes a patchwork of gold and crimson. Raking them into piles is the best part of the season.',
+  'A heron stood still in the shallow water all morning, watching for fish. It moved only when the sun grew hot. Patience is the heron way of fishing.',
+  'The trail winds through pine forest and open meadow, and moss grows thick on the rocks beside the stream. The forest floor smells of damp earth and pine. A morning walk here clears the head completely.',
+  'Morning dew covers the grass after a cool night, and the valley fills with fog until the sun burns it off. The meadow smells of clover in late spring. By noon the world looks crisp and new again.',
+  'The river narrows where the canyon walls close in, and the water runs fast and green. The canyon walls glow orange in the evening light. Every bend of the river hides a different view.',
+  'Squirrels bury acorns for the long winter ahead, and rabbits nibble the garden lettuce before dawn. The old oak tree shades half of the backyard. Wildlife treats the garden as its own pantry.',
+  'Wild roses grow along the fence line in June, and the meadow smells of clover in late spring. Bees work the blossoms from first light to dusk. The whole yard hums with quiet activity.',
+  'The waterfall thunders into a pool of green water, sending mist across the rocks. The stream runs clear after the spring melt. The sound of falling water drowns out every worry.',
+  'Deer graze at the edge of the field at dusk, watching the road with soft eyes. A hawk circled high above the open fields while they fed. The field holds its own quiet rhythm.',
+  'The ocean smelled of salt and fresh seaweed, and the beach was empty except for a few gulls. Seagulls circle the harbor, waiting for scraps. The tide pools hold tiny crabs and starfish.',
+  'Clouds gather over the mountains before the storm, and thunder rolled across the plain for an hour. The first heavy drops hit the dust like small coins. Then the rain settled into a steady drum on the roof.',
+  'The first snow covered the ground by early December, and icicles hung from the eaves after the freeze. Snowdrops push through the frozen ground in February. Winter has its own quiet beauty.',
+  'Birdsong fills the yard just before sunrise, and a family of ducks crosses the road every spring. The birds arrive long before the alarm clock. Their morning chorus marks the start of the day.',
+  'The cactus blooms only one night each year, opening its white petals after dark. Desert nights are cold and silent, so the flower has the stage to itself. By morning it is gone until next year.',
+  'The wind carved strange shapes into the desert stone, and the desert blooms with wildflowers after the rain. A single storm can turn bare ground into a carpet of color. The desert keeps its secrets until the water comes.',
+  'The lake reflects the sky like a giant mirror, and the sunrise painted the clouds pink and gold. Fireflies blink in the meadow on warm summer nights. The world doubles itself in the still water.',
+  'Fireflies blink in the meadow on warm summer nights, turning the grass into a field of tiny lanterns. The children chase them with glass jars. Their light is pure summer magic.',
+  'The old oak tree shades half of the backyard, and its roots have lifted the garden path in places. Birds nest in its highest branches. It has stood through more storms than anyone can count.',
+  'The tide pools hold tiny crabs and starfish, and the children crouch to watch them for hours. A wave washes in and rearranges everything. Each visit to the shore reveals something new.',
+  'A hawk circled high above the open fields, riding the warm air without a single wingbeat. The mice below froze at the shadow. The fields are a daily hunt for the birds above.',
+  'Mushrooms appear in the yard after heavy rain, some in rings and some alone. Moss grows thick on the rocks beside the stream. Damp days bring out the quiet growth.',
+  'Wolves howl at the moon in the deep woods, and their voices carry across the valleys. The sound raises the hair on the back of your neck. It is the wildest music the forest knows.',
+  'The sunrise painted the clouds pink and gold over the lake, and the water turned to liquid light. Snowdrops push through the frozen ground in February after the thaw. Each morning brings the season a step forward.',
+  'Autumn winds scatter the leaves across the lawn, and the maples drop their last gold. The garden beds get their winter mulch. Everything tucks in for the cold months.',
+  'The stream runs clear after the spring melt, and the pebbles on the bottom look polished. A kingfisher dives from a low branch and comes up with a fish. The water keeps its own quiet schedule.',
+  'Lightning split the summer sky, and thunder rolled across the plain for an hour. The storm cooled the air and soaked the dry fields. By morning the grass stood tall and green again.',
+  'The first robin of spring hopped across the thawing lawn, tilting its head at the ground. The snow still lay in the shaded corners. Everyone in the house called it the real beginning of the year.',
+];

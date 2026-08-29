@@ -1,0 +1,428 @@
+logging:
+  level: info
+  format: json
+  output: stdout
+  samplers:
+    http: 0.1
+    sql: 0.01
+  redact:
+    - "password"
+    - "token"
+    - "authorization"
+
+database:
+  url: postgres://app:app@db:5432/app
+  pool:
+    min: 2
+    max: 10
+    idle_timeout_ms: 30000
+  ssl:
+    enabled: true
+    ca_cert: /etc/ssl/certs/rds-ca.pem
+  migrations:
+    path: ./migrations
+    auto_run: false
+
+features:
+  checkout_v2:
+    enabled: true
+    rollout: 100
+  recommendations:
+    enabled: true
+    rollout: 25
+    fallback: "popular"
+  dark_mode:
+    enabled: false
+  bulk_export:
+    enabled: true
+    max_rows: 50000
+
+auth:
+  jwt:
+    issuer: auth.example.com
+    audience: api.example.com
+    access_ttl: 15m
+    refresh_ttl: 30d
+    algorithm: RS256
+    public_key: /etc/keys/jwt.pub
+  oauth:
+    providers:
+      - name: github
+        client_id: Iv1.abc123
+        scopes: [read:user, user:email]
+      - name: google
+        client_id: 812345678901-abc.apps.googleusercontent.com
+        scopes: [openid, email, profile]
+  session:
+    cookie_name: session
+    secure: true
+    same_site: lax
+
+rate_limit:
+  global:
+    requests: 1000
+    window: 1m
+  endpoints:
+    /api/v1/orders:
+      requests: 60
+      window: 1m
+    /api/v1/search:
+      requests: 30
+      window: 1m
+  strategy: token_bucket
+  redis_prefix: rl:
+
+cache:
+  engine: redis
+  url: redis://redis:6379/0
+  ttl: 300
+  key_prefix: "v1:"
+  invalidation:
+    - table: products
+      channels: [catalog.changed]
+    - table: prices
+      channels: [pricing.changed]
+  memory:
+    enabled: true
+    max_entries: 10000
+    ttl: 60
+
+smtp:
+  host: smtp.sendgrid.net
+  port: 587
+  username: apikey
+  password: SG.smtp-key
+  from: no-reply@example.com
+  from_name: Acme
+  templates:
+    dir: ./emails
+    default_locale: en
+  bcc_audit: ops@example.com
+
+queue:
+  provider: rabbitmq
+  url: amqp://guest:guest@rabbitmq:5672
+  prefetch: 10
+  exchanges:
+    - name: jobs
+      type: topic
+  queues:
+    - name: emails.send
+      routing_key: emails.*
+      dlq: emails.send.dlq
+    - name: reports.generate
+      routing_key: reports.*
+      max_length: 1000
+  retry:
+    max_attempts: 5
+    backoff: exponential
+
+search:
+  provider: elasticsearch
+  url: http://elasticsearch:9200
+  index: products
+  shards: 3
+  replicas: 2
+  analyzers:
+    default:
+      type: custom
+      tokenizer: standard
+      filters: [lowercase, stop, snowball]
+  autocomplete:
+    enabled: true
+    prefix_length: 3
+
+storage:
+  provider: s3
+  region: us-east-1
+  bucket: acme-assets
+  prefix: prod
+  public_url: https://cdn.example.com
+  upload:
+    max_size_mb: 25
+    allowed_types:
+      - image/jpeg
+      - image/png
+      - application/pdf
+  lifecycle:
+    - rule: archive-old
+      prefix: logs/
+      transition_after_days: 30
+      storage_class: STANDARD_IA
+
+i18n:
+  default_locale: en-US
+  supported_locales:
+    - en-US
+    - es-ES
+    - fr-FR
+    - de-DE
+    - ja-JP
+  fallback: en-US
+  plural_rules:
+    - locale: "ru|uk"
+      rule: russian
+  assets:
+    dir: ./locales
+    format: json
+
+security:
+  headers:
+    strict_transport_security: max-age=63072000
+    content_security_policy: "default-src 'self'"
+    x_frame_options: DENY
+    referrer_policy: strict-origin-when-cross-origin
+  cors:
+    allowed_origins:
+      - https://app.example.com
+    allowed_methods: [GET, POST, PUT, DELETE]
+    max_age: 86400
+  request_size_limit: 1mb
+
+backup:
+  schedule: "30 2 * * *"
+  engine: pg_dump
+  destinations:
+    - type: s3
+      bucket: acme-backups
+      prefix: postgres
+      retention_days: 30
+    - type: local
+      path: /var/backups
+      retention_days: 7
+  encryption:
+    enabled: true
+    key_arn: arn:aws:kms:us-east-1:123456789012:key/abc
+  verify:
+    restore_test: true
+    monthly: true
+
+notifications:
+  channels:
+    - type: email
+      provider: ses
+      enabled: true
+    - type: slack
+      webhook_url: https://hooks.slack.com/services/T000/B000/XXXX
+      channel: "#ops"
+      enabled: true
+    - type: sms
+      provider: twilio
+      from: "+15005550006"
+      enabled: false
+  rules:
+    - event: payment.failed
+      channels: [email, sms]
+      cooldown: 1h
+    - event: deploy.finished
+      channels: [slack]
+      cooldown: 0
+
+analytics:
+  provider: posthog
+  api_key: phc_xxxx
+  host: https://us.i.posthog.com
+  events:
+    track: [pageview, signup, checkout, purchase]
+  session_replay:
+    enabled: true
+    sample_rate: 0.05
+  privacy:
+    anonymize_ips: true
+    respect_dnt: true
+
+tracing:
+  provider: jaeger
+  endpoint: http://jaeger:4317
+  service_name: api
+  sampler:
+    type: probabilistic
+    param: 0.1
+  propagation: [w3c, b3]
+  tags:
+    environment: production
+    region: eu-west-1
+
+websocket:
+  path: /ws
+  heartbeat_interval: 30s
+  max_message_size: 64kb
+  origins:
+    - https://app.example.com
+  backpressure:
+    max_connections: 10000
+    max_pending_messages: 100
+
+webhooks:
+  - name: slack-alerts
+    url: https://hooks.slack.com/services/T000/B000/XXXX
+    events:
+      - deploy.finished
+      - incident.opened
+    secret: whsec_slack
+    retries: 5
+  - name: zapier-crm
+    url: https://hooks.zapier.com/hooks/catch/12345/abc/
+    events:
+      - customer.created
+      - invoice.paid
+    retries: 3
+
+push_notifications:
+  apns:
+    enabled: true
+    key_id: ABC123DEFG
+    team_id: TEAMID1234
+    bundle_id: com.example.app
+    environment: production
+  fcm:
+    enabled: true
+    project_id: acme-mobile
+    priority: high
+  topics:
+    - name: order_updates
+      sound: default
+      badge: true
+
+storage_presign:
+  url_ttl: 15m
+  max_file_size_mb: 100
+  allowed_buckets:
+    - uploads
+    - avatars
+  policies:
+    - bucket: uploads
+      prefix: invoices/
+      content_types: [application/pdf]
+      max_files: 10
+
+image_processing:
+  formats: [webp, avif]
+  quality: 80
+  sizes:
+    - name: thumbnail
+      width: 200
+      height: 200
+      fit: cover
+    - name: card
+      width: 640
+      height: 360
+      fit: cover
+    - name: full
+      width: 1920
+      height: 1080
+      fit: inside
+  cdn: https://img.example.com
+  cache_ttl: 86400
+
+experiments:
+  - key: checkout_redesign
+    buckets:
+      - variant: control
+        weight: 50
+      - variant: treatment
+        weight: 50
+  - key: search_ranking_v2
+    buckets:
+      - variant: control
+        weight: 80
+      - variant: neural
+        weight: 20
+  evaluation: deterministic
+  salt: experiment-salt-v1
+
+billing:
+  provider: stripe
+  plans:
+    - id: starter
+      price_monthly: 1200
+      price_yearly: 12000
+      limits:
+        projects: 3
+        seats: 5
+      support: standard
+    - id: pro
+      price_monthly: 4900
+      price_yearly: 49000
+      limits:
+        projects: 20
+        seats: 25
+      support: priority
+    - id: enterprise
+      custom: true
+      support: dedicated
+  trial_days: 14
+  proration: true
+
+seo:
+  title_template: "%s | Acme"
+  description_max: 160
+  default_locale: en_US
+  sitemap:
+    enabled: true
+    max_urls: 50000
+    priorities:
+      home: 1.0
+      product: 0.8
+      blog: 0.6
+  robots:
+    allow_all: true
+    disallow:
+      - /admin/
+      - /cart/
+
+session:
+  store: redis
+  ttl: 7d
+  cookie:
+    name: sid
+    http_only: true
+    secure: true
+    same_site: lax
+    domain: .example.com
+  rolling: true
+  absolute_timeout: 30d
+
+graphql:
+  path: /graphql
+  introspection: true
+  playground: false
+  depth_limit: 12
+  complexity:
+    max: 1000
+    cost:
+      scalar: 1
+      object: 2
+      list: 5
+  persisted_queries:
+    enabled: true
+    ttl: 30d
+
+quotas:
+  default:
+    requests_per_minute: 300
+    storage_gb: 10
+    api_calls_per_day: 50000
+  tiers:
+    free:
+      requests_per_minute: 60
+      storage_gb: 1
+    pro:
+      requests_per_minute: 600
+      storage_gb: 50
+  enforcement: hard
+  notify_at_percent: 80
+
+audit_log:
+  enabled: true
+  events:
+    - auth.login
+    - auth.login_failed
+    - user.updated
+    - billing.changed
+    - settings.changed
+  retention_days: 90
+  sink: s3://acme-audit-logs
+  redact_fields:
+    - password
+    - api_key

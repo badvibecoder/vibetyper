@@ -1,0 +1,6 @@
+# vibetyper dictionary setup — python
+# `key = value` lines; `#` starts a comment.
+name = Python
+ext = py
+comment = #
+blockmode = indent

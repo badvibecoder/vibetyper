@@ -1,0 +1,473 @@
+name: ml-env
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - numpy=1.26.4
+  - pandas=2.2.2
+  - scikit-learn=1.5.1
+  - matplotlib=3.9.0
+  - jupyterlab=4.2.0
+  - pip
+  - pip:
+      - torch==2.3.1
+      - transformers==4.42.3
+
+site_name: Acme Docs
+repo_url: https://github.com/acme/docs
+theme:
+  name: material
+  palette:
+    scheme: slate
+    primary: indigo
+  features:
+    - navigation.tabs
+    - navigation.top
+    - search.suggest
+markdown_extensions:
+  - admonition
+  - pymdownx.highlight
+  - pymdownx.superfences
+nav:
+  - Home: index.md
+  - Guides:
+      - Getting started: guides/getting-started.md
+      - Deployment: guides/deployment.md
+  - API: api.md
+
+http:
+  routers:
+    web:
+      rule: "Host(`app.example.com`)"
+      service: app-svc
+      tls:
+        certResolver: letsencrypt
+    api:
+      rule: "Host(`api.example.com`) && PathPrefix(`/v1`)"
+      service: api-svc
+      middlewares:
+        - api-rate-limit
+  middlewares:
+    api-rate-limit:
+      rateLimit:
+        average: 100
+        burst: 50
+  services:
+    app-svc:
+      loadBalancer:
+        servers:
+          - url: "http://10.0.0.10:8080"
+    api-svc:
+      loadBalancer:
+        servers:
+          - url: "http://10.0.0.11:8080"
+
+homeassistant:
+  name: Home
+  latitude: 51.5074
+  longitude: -0.1278
+  unit_system: metric
+  time_zone: Europe/London
+default_config:
+sensor:
+  - platform: template
+    sensors:
+      kitchen_temp_c:
+        value_template: "{{ states('sensor.kitchen_temperature') | float | round(1) }}"
+        unit_of_measurement: "°C"
+automation:
+  - alias: Turn on porch light at dusk
+    trigger:
+      platform: sun
+      event: sunset
+    action:
+      service: light.turn_on
+      target:
+        entity_id: light.porch
+
+version: 2.1
+orbs:
+  node: circleci/node@5.2.0
+  docker: circleci/docker@2.7.0
+jobs:
+  build:
+    docker:
+      - image: cimg/node:20.12
+    steps:
+      - checkout
+      - node/install-packages
+      - run: npm run build
+      - persist_to_workspace:
+          root: .
+          paths:
+            - dist
+workflows:
+  version: 2
+  ci:
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+  - repo: https://github.com/psf/black
+    rev: 24.4.2
+    hooks:
+      - id: black
+        language_version: python3.12
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.5.2
+    hooks:
+      - id: ruff
+        args: [--fix]
+
+family: ecs-task
+networkMode: awsvpc
+requiresCompatibilities:
+  - FARGATE
+cpu: "512"
+memory: "1024"
+executionRoleArn: arn:aws:iam::123456789012:role/ecs-exec
+containerDefinitions:
+  - name: api
+    image: 123456789012.dkr.ecr.us-east-1.amazonaws.com/api:latest
+    portMappings:
+      - containerPort: 8080
+    environment:
+      - name: NODE_ENV
+        value: production
+    logConfiguration:
+      logDriver: awslogs
+      options:
+        awslogs-group: /ecs/api
+        awslogs-region: us-east-1
+        awslogs-stream-prefix: api
+
+index_patterns:
+  - "logs-*"
+template:
+  settings:
+    number_of_shards: 2
+    number_of_replicas: 1
+    analysis:
+      analyzer:
+        email_analyzer:
+          type: custom
+          tokenizer: uax_url_email
+          filter: [lowercase]
+  mappings:
+    properties:
+      timestamp:
+        type: date
+      level:
+        type: keyword
+      message:
+        type: text
+      service:
+        type: keyword
+      request_id:
+        type: keyword
+
+version: 1
+formatters:
+  json:
+    type: json
+  text:
+    type: text
+inputs:
+  systemd:
+    type: systemd
+    tag: "*"
+transforms:
+  normalize:
+    type: remap
+    inputs: [systemd]
+    source: |
+      .parsed = parse_json!(.message) ?? {}
+sinks:
+  loki:
+    type: loki
+    inputs: [normalize]
+    endpoint: http://loki:3100
+    labels:
+      host: "{{ host }}"
+      unit: "{{ unit }}"
+
+cron:
+  - name: sync_inventory
+    schedule: "*/15 * * * *"
+    command: inventory-sync
+    retries: 3
+    timeout_seconds: 120
+  - name: purge_sessions
+    schedule: "0 4 * * *"
+    command: session-cleanup
+    retries: 1
+  - name: weekly_report
+    schedule: "0 9 * * 1"
+    command: send-report --format pdf
+    retries: 5
+    timeout_seconds: 600
+
+ingress:
+  - name: web
+    service: web
+    port: 80
+    tls:
+      enabled: true
+      cert_manager: true
+    annotations:
+      nginx.ingress.kubernetes.io/proxy-body-size: 50m
+  - name: api
+    service: api
+    port: 8080
+    path: /api
+
+service:
+  name: frontend
+  url: https://frontend.example.com
+  upstream:
+    - url: https://api.example.com
+      weight: 80
+    - url: https://api-backup.example.com
+      weight: 20
+  health_check:
+    path: /healthz
+    interval: 10s
+    timeout: 3s
+    unhealthy_threshold: 3
+  retries:
+    attempts: 2
+    statuses: [502, 503, 504]
+
+cluster:
+  name: staging
+  region: us-west-2
+  version: "1.30"
+  node_groups:
+    - name: general
+      instance_types: [t3.medium, t3.large]
+      min_size: 1
+      max_size: 4
+      desired_size: 2
+      labels:
+        role: general
+    - name: gpu
+      instance_types: [g5.xlarge]
+      min_size: 0
+      max_size: 2
+      desired_size: 0
+      taints:
+        - key: nvidia.com/gpu
+          value: "true"
+          effect: NoSchedule
+
+project:
+  name: mobile-app
+  environments:
+    - name: development
+      auto_deploy: true
+      branch: develop
+    - name: staging
+      auto_deploy: true
+      branch: main
+    - name: production
+      auto_deploy: false
+      branch: main
+      approvals: 2
+  deploy:
+    strategy: rolling
+    timeout: 20m
+    healthcheck: /healthz
+  rollback:
+    enabled: true
+    automatic: true
+
+version: 2.1
+jobs:
+  test:
+    docker:
+      - image: cimg/python:3.12
+        environment:
+          DATABASE_URL: postgres://app:app@localhost:5432/app
+      - image: cimg/postgres:16.2
+        environment:
+          POSTGRES_DB: app
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+    steps:
+      - checkout
+      - run: pip install -e ".[dev]"
+      - run: pytest
+workflows:
+  main:
+    jobs:
+      - test
+
+version: 2.1
+jobs:
+  deploy:
+    docker:
+      - image: cimg/base:2024.06
+    steps:
+      - checkout
+      - run:
+          name: Deploy to production
+          command: |
+            curl -X POST https://api.vercel.com/v13/deployments               -H "Authorization: Bearer $VERCEL_TOKEN"               --data-urlencode "name=acme-web"
+workflows:
+  release:
+    jobs:
+      - deploy:
+          filters:
+            branches:
+              only: main
+
+version: 2.1
+jobs:
+  build:
+    docker:
+      - image: cimg/node:20.12
+    steps:
+      - checkout
+      - run: npm ci
+      - run: npm run build
+      - store_artifacts:
+          path: dist
+          destination: web-dist
+workflows:
+  ci:
+    jobs:
+      - build
+
+sso:
+  provider: saml
+  idp_metadata_url: https://login.example.com/saml/metadata
+  entity_id: https://app.example.com/saml
+  acs_url: https://app.example.com/saml/acs
+  attribute_mapping:
+    email: urn:oid:1.2.840.113549.1.9.1
+    first_name: givenName
+    last_name: sn
+  auto_provision: true
+
+mfa:
+  enabled: true
+  methods:
+    - type: totp
+      issuer: Acme
+      algorithm: SHA1
+      digits: 6
+      period: 30
+    - type: sms
+      provider: twilio
+  recovery_codes:
+    count: 10
+    length: 12
+  enforce_for_roles:
+    - admin
+    - billing
+
+maintenance:
+  enabled: false
+  message: "We are performing scheduled maintenance."
+  allowlist:
+    - 10.0.0.0/8
+    - 192.168.1.5
+  cache_control: no-store
+  status_page: https://status.example.com
+
+feature_flags:
+  - key: new_onboarding
+    enabled: true
+    targeting:
+      - rule: employees
+        rollout: 100
+      - rule: beta_users
+        rollout: 50
+  - key: instant_checkout
+    enabled: false
+  - key: dark_mode
+    enabled: true
+    rollout: 25
+  evaluation_endpoint: https://flags.example.com/evaluate
+
+sources:
+  - name: snowflake
+    database: ANALYTICS
+    schema: RAW
+    tables:
+      - name: WEB_EVENTS
+        columns:
+          - name: EVENT_ID
+            tests: [unique, not_null]
+      - name: SESSIONS
+        loaded_at_field: LOADED_AT
+        freshness:
+          warn_after: {count: 6, period: hour}
+
+service: ledger
+provider:
+  name: aws
+  runtime: nodejs20.x
+functions:
+  onEvent:
+    handler: handlers/event.consume
+    events:
+      - stream:
+          type: dynamodb
+          arn: arn:aws:dynamodb:us-east-1:123456789012:table/ledger/stream/2024-01-01
+          batchSize: 100
+          startingPosition: LATEST
+
+endpoints:
+  /health:
+    enabled: true
+    response_timeout_ms: 500
+  /metrics:
+    enabled: true
+    auth: internal
+  /debug:
+    enabled: false
+  /swagger:
+    enabled: true
+    path: /docs
+
+exports:
+  formats: [csv, json, parquet]
+  max_rows: 1000000
+  async:
+    enabled: true
+    queue: exports.queue
+    notification: email
+  schedule:
+    - name: nightly_sales
+      cron: "0 5 * * *"
+      format: parquet
+      destination: s3://acme-exports/sales
+
+oauth_apps:
+  - name: mobile-ios
+    client_id: ios_abc123
+    redirect_uris:
+      - acmeapp://oauth/callback
+    scopes: [profile, orders.read]
+  - name: mobile-android
+    client_id: android_def456
+    redirect_uris:
+      - https://app.example.com/auth/callback
+    scopes: [profile, orders.read, push]
+  - name: partner-portal
+    client_id: partner_789xyz
+    redirect_uris:
+      - https://partner.example.com/oauth2/callback
+    scopes: [analytics.read]
+    confidential: true

@@ -1,0 +1,167 @@
+replicaCount: 2
+image:
+  repository: ghcr.io/acme/api
+  tag: "1.12.0"
+  pullPolicy: IfNotPresent
+service:
+  type: ClusterIP
+  port: 80
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: api.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+resources:
+  limits:
+    cpu: 1
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+replicaCount: 2
+image:
+  repository: ghcr.io/acme/console
+  tag: "1.12.0"
+  pullPolicy: IfNotPresent
+service:
+  type: ClusterIP
+  port: 8080
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: console.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+resources:
+  limits:
+    cpu: 1
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 8
+  targetCPUUtilizationPercentage: 75
+serviceAccount:
+  create: true
+  name: app-sa
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "9090"
+nodeSelector:
+  kubernetes.io/os: linux
+tolerations: []
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - api
+          topologyKey: topology.kubernetes.io/zone
+
+image:
+  repository: registry.example.com/checkout
+  tag: "2024.08.1"
+env:
+  - name: STRIPE_SECRET_KEY
+    valueFrom:
+      secretKeyRef:
+        name: checkout-secrets
+        key: stripe-key
+  - name: STRIPE_WEBHOOK_SECRET
+    valueFrom:
+      secretKeyRef:
+        name: checkout-secrets
+        key: webhook-secret
+ingress:
+  enabled: true
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  tls:
+    - secretName: checkout-tls
+      hosts:
+        - checkout.example.com
+
+postgresql:
+  enabled: true
+  auth:
+    username: app
+    database: app
+    existingSecret: app-pg-secret
+  primary:
+    persistence:
+      size: 100Gi
+      storageClass: gp3
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: true
+    existingSecret: app-redis-secret
+
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  scrapeTimeout: 10s
+  labels:
+    release: kube-prometheus-stack
+grafana:
+  dashboard:
+    enabled: true
+    label: grafana_dashboard
+    labelValue: "1"
+    namespace: monitoring
+
+nameOverride: notifications
+fullnameOverride: notifications
+replicaCount: 3
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 15
+readinessProbe:
+  httpGet:
+    path: /readyz
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+image:
+  repository: postgres
+  tag: "16.3"
+auth:
+  username: app
+  database: app
+  existingSecret: pg-secret
+  secretKeys:
+    userPasswordKey: postgres-password
+primary:
+  persistence:
+    size: 50Gi
+    storageClass: standard
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+readReplicas:
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi

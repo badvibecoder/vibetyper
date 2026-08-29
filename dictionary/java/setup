@@ -1,0 +1,5 @@
+# vibetyper dictionary setup — java
+name = Java
+ext = java
+comment = //
+blockmode = braces

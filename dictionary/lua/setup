@@ -1,0 +1,5 @@
+# vibetyper dictionary setup — lua
+name = Lua
+ext = lua
+comment = --
+blockmode = blank

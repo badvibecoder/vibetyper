@@ -1,0 +1,445 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: billing-env
+data:
+  DATABASE_URL: postgres://app:app@postgres:5432/billing
+  REDIS_URL: redis://redis:6379/1
+  S3_BUCKET: billing-assets
+  S3_ENDPOINT: http://minio:9000
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: notifications-env
+data:
+  DATABASE_URL: postgres://app:app@postgres:5432/notifications
+  REDIS_URL: redis://redis:6379/1
+  S3_BUCKET: notifications-assets
+  S3_ENDPOINT: http://minio:9000
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v2.53.0
+          args:
+            - --config.file=/etc/prometheus/prometheus.yml
+            - --storage.tsdb.retention.size=50GB
+          ports:
+            - containerPort: 9090
+          volumeMounts:
+            - name: config
+              mountPath: /etc/prometheus
+      volumes:
+        - name: config
+          configMap:
+            name: prometheus-config
+
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: envoy
+data:
+  envoy.yaml: |
+    static_resources:
+      listeners:
+        - name: main
+          address:
+            socket_address:
+              address: 0.0.0.0
+              port_value: 10000
+          filter_chains:
+            - filters:
+                - name: envoy.filters.network.http_connection_manager
+                  typed_config:
+                    "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                    stat_prefix: ingress_http
+                    route_config:
+                      virtual_hosts:
+                        - name: backend
+                          domains: ["*"]
+                          routes:
+                            - match: {prefix: "/"}
+                              route: {cluster: service_a}
+                    http_filters:
+                      - name: envoy.filters.http.router
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kubectl-debug
+  labels:
+    app: debugger
+spec:
+  containers:
+    - name: kubectl
+      image: bitnami/kubectl:1.30
+      command: ["sleep", "infinity"]
+      env:
+        - name: KUBECONFIG
+          value: /workspace/kubeconfig
+      volumeMounts:
+        - name: kube
+          mountPath: /workspace
+  volumes:
+    - name: kube
+      configMap:
+        name: admin-kubeconfig
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metrics
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: metrics
+  template:
+    metadata:
+      labels:
+        app: metrics
+    spec:
+      containers:
+        - name: kube-state-metrics
+          image: registry.k8s.io/kube-state-metrics:v2.12.0
+          ports:
+            - containerPort: 8080
+        - name: node-exporter
+          image: prom/node-exporter:v1.8.2
+          ports:
+            - containerPort: 9100
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      containers:
+        - name: api
+          image: ghcr.io/acme/api:1.4.0
+          envFrom:
+            - configMapRef:
+                name: api-config
+            - secretRef:
+                name: api-secrets
+          ports:
+            - containerPort: 8080
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: web
+          image: nginx:1.27-alpine
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 10"]
+          terminationGracePeriodSeconds: 30
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gpu-job
+spec:
+  nodeSelector:
+    node.kubernetes.io/instance-type: g5.xlarge
+  tolerations:
+    - key: nvidia.com/gpu
+      operator: Exists
+      effect: NoSchedule
+  containers:
+    - name: trainer
+      image: ghcr.io/acme/trainer:2.0.0
+      resources:
+        limits:
+          nvidia.com/gpu: "1"
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api
+  annotations:
+    nginx.ingress.kubernetes.io/limit-rps: "20"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
+spec:
+  rules:
+    - host: api.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: api
+                port:
+                  number: 8080
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: external-api
+spec:
+  type: ExternalName
+  externalName: api.external.example.com
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-headless
+spec:
+  clusterIP: None
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: api
+      containers:
+        - name: api
+          image: ghcr.io/acme/api:1.4.0
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: regcred
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: eyJhdXRocyI6eyJyZWdpc3RyeS5leGFtcGxlLmNvbSI6e319fQ==
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app: api
+              topologyKey: kubernetes.io/hostname
+      containers:
+        - name: api
+          image: ghcr.io/acme/api:1.4.0
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: init-script
+data:
+  init.sql: |
+    CREATE TABLE IF NOT EXISTS app_events (
+      id BIGSERIAL PRIMARY KEY,
+      event_type TEXT NOT NULL,
+      payload JSONB,
+      created_at TIMESTAMPTZ DEFAULT now()
+    );
+    CREATE INDEX idx_app_events_type ON app_events (event_type);
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7.4-alpine
+          command: ["redis-server"]
+          args: ["--appendonly", "yes", "--save", "900 1", "--maxmemory", "256mb"]
+          ports:
+            - containerPort: 6379
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: redis-data
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: api
+          image: ghcr.io/acme/api:1.4.0
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          ports:
+            - containerPort: 8080
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+spec:
+  selector:
+    app: api
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  ports:
+    - port: 8080
+      targetPort: 8080
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: web-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: web
+  minReplicas: 2
+  maxReplicas: 12
+  metrics:
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ws-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+spec:
+  rules:
+    - host: ws.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway
+                port:
+                  number: 8080
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      containers:
+        - name: worker
+          image: ghcr.io/acme/worker:2.1.0
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          env:
+            - name: QUEUE_NAME
+              value: high-priority

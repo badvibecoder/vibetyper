@@ -1,0 +1,448 @@
+<form class="auth-form" action="/login" method="post">
+  <h1>Sign in</h1>
+  <label for="email">Email</label>
+  <input type="email" id="email" name="email" required autocomplete="email">
+  <label for="password">Password</label>
+  <input type="password" id="password" name="password" required autocomplete="current-password">
+  <button type="submit" class="btn btn-primary">Sign in</button>
+  <p class="form-foot">New here? <a href="/signup">Create an account</a></p>
+</form>
+
+<form class="auth-form" action="/signup" method="post">
+  <h1>Create your account</h1>
+  <label for="full-name">Full name</label>
+  <input type="text" id="full-name" name="name" required autocomplete="name">
+  <label for="work-email">Work email</label>
+  <input type="email" id="work-email" name="email" required autocomplete="email">
+  <label for="new-password">Password</label>
+  <input type="password" id="new-password" name="password" minlength="10" required>
+  <p class="hint">Use at least 10 characters.</p>
+  <button type="submit" class="btn btn-primary">Sign up</button>
+</form>
+
+<form class="auth-form" action="/forgot" method="post">
+  <h1>Reset your password</h1>
+  <p>Enter the email address you used to register and we will send you a reset link.</p>
+  <label for="reset-email">Email</label>
+  <input type="email" id="reset-email" name="email" required autocomplete="email">
+  <button type="submit" class="btn btn-primary">Send reset link</button>
+  <p class="form-foot"><a href="/login">Back to sign in</a></p>
+</form>
+
+<form class="checkout-form" action="/checkout" method="post">
+  <fieldset>
+    <legend>Billing address</legend>
+    <label for="addr-line1">Address line 1</label>
+    <input type="text" id="addr-line1" name="line1" required>
+    <label for="addr-city">City</label>
+    <input type="text" id="addr-city" name="city" required>
+    <label for="addr-zip">Postal code</label>
+    <input type="text" id="addr-zip" name="zip" required inputmode="numeric">
+    <label for="addr-country">Country</label>
+    <select id="addr-country" name="country" required>
+      <option value="US">United States</option>
+      <option value="CA">Canada</option>
+      <option value="GB">United Kingdom</option>
+      <option value="DE">Germany</option>
+    </select>
+  </fieldset>
+  <button type="submit" class="btn btn-primary">Continue to payment</button>
+</form>
+
+<form class="contact-form" action="/contact" method="post">
+  <h2>Contact support</h2>
+  <label for="topic">Topic</label>
+  <select id="topic" name="topic" required>
+    <option value="billing">Billing</option>
+    <option value="account">Account access</option>
+    <option value="bug">Bug report</option>
+    <option value="other">Something else</option>
+  </select>
+  <label for="message">Message</label>
+  <textarea id="message" name="message" rows="5" required placeholder="Describe the issue..."></textarea>
+  <button type="submit" class="btn btn-primary">Send message</button>
+</form>
+
+<form class="newsletter-form" action="/subscribe" method="post">
+  <label for="newsletter-email">Email address</label>
+  <input type="email" id="newsletter-email" name="email" required placeholder="you@example.com">
+  <button type="submit" class="btn">Subscribe</button>
+  <p class="hint">Monthly digest. No spam, unsubscribe anytime.</p>
+</form>
+
+<form class="filter-form" action="/search" method="get" role="search">
+  <label for="q">Search</label>
+  <input type="search" id="q" name="q" value="wireless headphones" placeholder="Search products">
+  <fieldset>
+    <legend>Category</legend>
+    <label><input type="checkbox" name="cat" value="audio"> Audio</label>
+    <label><input type="checkbox" name="cat" value="wearables"> Wearables</label>
+    <label><input type="checkbox" name="cat" value="home"> Home</label>
+  </fieldset>
+  <label for="sort">Sort by</label>
+  <select id="sort" name="sort">
+    <option value="relevance">Relevance</option>
+    <option value="price-asc">Price: low to high</option>
+    <option value="price-desc">Price: high to low</option>
+  </select>
+  <button type="submit" class="btn">Apply filters</button>
+</form>
+
+<form class="filter-form" action="/search" method="get" role="search">
+  <label for="q">Search</label>
+  <input type="search" id="q" name="q" value="desk lamp" placeholder="Search products">
+  <fieldset>
+    <legend>Category</legend>
+    <label><input type="checkbox" name="cat" value="audio"> Audio</label>
+    <label><input type="checkbox" name="cat" value="wearables"> Wearables</label>
+    <label><input type="checkbox" name="cat" value="home"> Home</label>
+  </fieldset>
+  <label for="sort">Sort by</label>
+  <select id="sort" name="sort">
+    <option value="relevance">Relevance</option>
+    <option value="price-asc">Price: low to high</option>
+    <option value="price-desc">Price: high to low</option>
+  </select>
+  <button type="submit" class="btn">Apply filters</button>
+</form>
+
+<form class="profile-form" action="/profile" method="post">
+  <h2>Edit profile</h2>
+  <label for="display-name">Display name</label>
+  <input type="text" id="display-name" name="display_name" value="Priya Sharma" required>
+  <label for="bio">Bio</label>
+  <textarea id="bio" name="bio" rows="3" maxlength="280">Full-stack developer, coffee enthusiast.</textarea>
+  <label for="timezone">Timezone</label>
+  <select id="timezone" name="timezone">
+    <option value="America/Los_Angeles">Pacific Time</option>
+    <option value="America/New_York">Eastern Time</option>
+    <option value="Europe/London" selected>London</option>
+    <option value="Asia/Kolkata">India Standard Time</option>
+  </select>
+  <button type="submit" class="btn btn-primary">Save changes</button>
+</form>
+
+<form class="booking-form" action="/booking" method="post">
+  <h2>Book your stay</h2>
+  <label for="checkin">Check-in</label>
+  <input type="date" id="checkin" name="checkin" required>
+  <label for="checkout">Check-out</label>
+  <input type="date" id="checkout" name="checkout" required>
+  <label for="guests">Guests</label>
+  <select id="guests" name="guests">
+    <option>1 adult</option>
+    <option selected>2 adults</option>
+    <option>2 adults, 1 child</option>
+    <option>3 adults</option>
+  </select>
+  <button type="submit" class="btn btn-primary">Check availability</button>
+</form>
+
+<form class="feedback-form" action="/feedback" method="post">
+  <h2>How was your experience?</h2>
+  <fieldset>
+    <legend>Rating</legend>
+    <label><input type="radio" name="rating" value="1"> 1 star</label>
+    <label><input type="radio" name="rating" value="2"> 2 stars</label>
+    <label><input type="radio" name="rating" value="3"> 3 stars</label>
+    <label><input type="radio" name="rating" value="4"> 4 stars</label>
+    <label><input type="radio" name="rating" value="5" checked> 5 stars</label>
+  </fieldset>
+  <label for="feedback">Comments</label>
+  <textarea id="feedback" name="comments" rows="4"></textarea>
+  <button type="submit" class="btn btn-primary">Submit feedback</button>
+</form>
+
+<form class="upload-form" action="/upload" method="post" enctype="multipart/form-data">
+  <h2>Upload documents</h2>
+  <label for="docs">Files</label>
+  <input type="file" id="docs" name="docs" multiple accept=".pdf,.docx,.png,.jpg" required>
+  <p class="hint">PDF, Word, PNG or JPG up to 25 MB each.</p>
+  <label for="doc-tag">Tag</label>
+  <input type="text" id="doc-tag" name="tag" placeholder="e.g. invoice-2024">
+  <button type="submit" class="btn btn-primary">Upload</button>
+</form>
+
+<form class="survey-form" action="/survey" method="post">
+  <h2>Quick survey</h2>
+  <fieldset>
+    <legend>How often do you use the app?</legend>
+    <label><input type="radio" name="frequency" value="daily"> Daily</label>
+    <label><input type="radio" name="frequency" value="weekly"> Weekly</label>
+    <label><input type="radio" name="frequency" value="monthly"> Monthly</label>
+    <label><input type="radio" name="frequency" value="rarely"> Rarely</label>
+  </fieldset>
+  <label for="improve">What should we improve?</label>
+  <select id="improve" name="improve">
+    <option value="speed">Speed</option>
+    <option value="design">Design</option>
+    <option value="features">Features</option>
+    <option value="docs">Documentation</option>
+  </select>
+  <button type="submit" class="btn btn-primary">Submit</button>
+</form>
+
+<form class="donate-form" action="/donate" method="post">
+  <h2>Support the cause</h2>
+  <fieldset>
+    <legend>Choose an amount</legend>
+    <label><input type="radio" name="amount" value="25"> $25</label>
+    <label><input type="radio" name="amount" value="50" checked> $50</label>
+    <label><input type="radio" name="amount" value="100"> $100</label>
+    <label><input type="radio" name="amount" value="custom"> Custom</label>
+  </fieldset>
+  <label for="donation-note">Leave a note</label>
+  <input type="text" id="donation-note" name="note" placeholder="In memory of...">
+  <button type="submit" class="btn btn-primary">Donate now</button>
+</form>
+
+<form class="settings-form" action="/settings" method="post">
+  <h2>Notification settings</h2>
+  <label class="switch">
+    <input type="checkbox" name="email_digest" checked>
+    <span>Weekly email digest</span>
+  </label>
+  <label class="switch">
+    <input type="checkbox" name="push_deploys">
+    <span>Push alerts when deploys finish</span>
+  </label>
+  <label class="switch">
+    <input type="checkbox" name="sms_incidents" checked>
+    <span>SMS for critical incidents</span>
+  </label>
+  <label for="quiet-hours">Quiet hours start</label>
+  <input type="time" id="quiet-hours" name="quiet_hours" value="22:00">
+  <button type="submit" class="btn btn-primary">Save preferences</button>
+</form>
+
+<form class="payment-form" action="/pay" method="post">
+  <h2>Payment details</h2>
+  <label for="card-name">Name on card</label>
+  <input type="text" id="card-name" name="card_name" autocomplete="cc-name" required>
+  <label for="card-number">Card number</label>
+  <input type="text" id="card-number" name="card_number" inputmode="numeric" autocomplete="cc-number" placeholder="4242 4242 4242 4242" required>
+  <div class="card-row">
+    <label for="card-expiry">Expiry</label>
+    <input type="text" id="card-expiry" name="card_expiry" placeholder="MM/YY" autocomplete="cc-exp" required>
+    <label for="card-cvc">CVC</label>
+    <input type="text" id="card-cvc" name="card_cvc" inputmode="numeric" autocomplete="cc-csc" maxlength="4" required>
+  </div>
+  <button type="submit" class="btn btn-primary">Pay $129.00</button>
+</form>
+
+<form class="address-form" action="/addresses" method="post">
+  <h2>Add a shipping address</h2>
+  <label for="recipient">Recipient</label>
+  <input type="text" id="recipient" name="recipient" required>
+  <label for="street">Street address</label>
+  <input type="text" id="street" name="street" required>
+  <label for="apt">Apartment, suite (optional)</label>
+  <input type="text" id="apt" name="apt">
+  <label for="city2">City</label>
+  <input type="text" id="city2" name="city" required>
+  <label for="region">State / Province</label>
+  <input type="text" id="region" name="region" required>
+  <label for="postal">Postal code</label>
+  <input type="text" id="postal" name="postal" required>
+  <button type="submit" class="btn btn-primary">Save address</button>
+</form>
+
+<form class="invite-form" action="/invite" method="post">
+  <h2>Invite teammates</h2>
+  <label for="emails">Email addresses</label>
+  <textarea id="emails" name="emails" rows="3" required placeholder="ada@example.com&#10;grace@example.com"></textarea>
+  <label for="role">Role</label>
+  <select id="role" name="role">
+    <option value="member">Member</option>
+    <option value="admin">Admin</option>
+    <option value="viewer">Viewer</option>
+  </select>
+  <button type="submit" class="btn btn-primary">Send invites</button>
+</form>
+
+<form class="login-alt" action="/login" method="post">
+  <h1>Welcome back</h1>
+  <p class="hint">Sign in to continue to your workspace.</p>
+  <label for="user">Username or email</label>
+  <input type="text" id="user" name="user" required autocomplete="username">
+  <label for="pass">Password</label>
+  <input type="password" id="pass" name="pass" required autocomplete="current-password">
+  <div class="form-row">
+    <label><input type="checkbox" name="remember"> Remember me</label>
+    <a href="/forgot">Forgot password?</a>
+  </div>
+  <button type="submit" class="btn btn-primary">Sign in</button>
+</form>
+
+<form class="ticket-form" action="/support" method="post">
+  <h2>Open a support ticket</h2>
+  <label for="t-subject">Subject</label>
+  <input type="text" id="t-subject" name="subject" required placeholder="Brief summary">
+  <label for="t-project">Project</label>
+  <select id="t-project" name="project">
+    <option value="checkout-api">checkout-api</option>
+    <option value="web">web</option>
+    <option value="infra">infrastructure</option>
+  </select>
+  <label for="t-severity">Severity</label>
+  <select id="t-severity" name="severity">
+    <option value="low">Low</option>
+    <option value="medium" selected>Medium</option>
+    <option value="high">High — production down</option>
+  </select>
+  <label for="t-body">Description</label>
+  <textarea id="t-body" name="body" rows="6" required></textarea>
+  <button type="submit" class="btn btn-primary">Submit ticket</button>
+</form>
+
+<form class="tax-form" action="/taxes" method="post">
+  <h2>Tax information</h2>
+  <label for="legal-name">Legal name</label>
+  <input type="text" id="legal-name" name="legal_name" required>
+  <label for="tax-id">Tax ID / EIN</label>
+  <input type="text" id="tax-id" name="tax_id" required>
+  <label for="tax-address">Registered address</label>
+  <input type="text" id="tax-address" name="tax_address" required>
+  <fieldset>
+    <legend>Entity type</legend>
+    <label><input type="radio" name="entity" value="llc" checked> LLC</label>
+    <label><input type="radio" name="entity" value="corp"> Corporation</label>
+    <label><input type="radio" name="entity" value="sole"> Sole proprietor</label>
+  </fieldset>
+  <button type="submit" class="btn btn-primary">Save tax details</button>
+</form>
+
+<form class="twofa-form" action="/2fa" method="post">
+  <h2>Two-factor authentication</h2>
+  <p>Enter the 6-digit code from your authenticator app.</p>
+  <label class="visually-hidden" for="otp">Verification code</label>
+  <input type="text" id="otp" name="otp" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required>
+  <button type="submit" class="btn btn-primary">Verify</button>
+  <p class="hint">Didn't get a code? <a href="/2fa/resend">Resend</a></p>
+</form>
+
+<form class="api-key-form" action="/api-keys" method="post">
+  <h2>Create an API key</h2>
+  <label for="key-name">Key name</label>
+  <input type="text" id="key-name" name="name" required placeholder="e.g. staging-ci">
+  <label for="key-scope">Scopes</label>
+  <select id="key-scope" name="scope">
+    <option value="read">Read only</option>
+    <option value="read_write">Read & write</option>
+    <option value="admin">Admin</option>
+  </select>
+  <label for="key-expiry">Expires</label>
+  <input type="date" id="key-expiry" name="expires" min="2025-01-01">
+  <button type="submit" class="btn btn-primary">Generate key</button>
+</form>
+
+<form class="job-form" action="/apply" method="post">
+  <h2>Apply for this role</h2>
+  <label for="cand-name">Full name</label>
+  <input type="text" id="cand-name" name="name" required autocomplete="name">
+  <label for="cand-email">Email</label>
+  <input type="email" id="cand-email" name="email" required autocomplete="email">
+  <label for="cand-resume">Resume</label>
+  <input type="file" id="cand-resume" name="resume" accept=".pdf,.doc,.docx" required>
+  <label for="cand-linkedin">LinkedIn (optional)</label>
+  <input type="url" id="cand-linkedin" name="linkedin" placeholder="https://linkedin.com/in/...">
+  <button type="submit" class="btn btn-primary">Submit application</button>
+</form>
+
+<form class="multi-step" action="/wizard" method="post">
+  <ol class="steps">
+    <li class="done">Account</li>
+    <li class="active">Team</li>
+    <li>Plan</li>
+  </ol>
+  <fieldset>
+    <legend>Team details</legend>
+    <label for="team-name">Team name</label>
+    <input type="text" id="team-name" name="team_name" required>
+    <label for="team-slug">URL slug</label>
+    <input type="text" id="team-slug" name="team_slug" pattern="[a-z0-9-]+" placeholder="my-team">
+    <label for="team-size">Team size</label>
+    <select id="team-size" name="size">
+      <option>1–5</option>
+      <option selected>6–25</option>
+      <option>26–100</option>
+      <option>100+</option>
+    </select>
+  </fieldset>
+  <div class="form-nav">
+    <button type="button" class="btn">Back</button>
+    <button type="submit" class="btn btn-primary">Continue</button>
+  </div>
+</form>
+
+<form class="import-form" action="/import" method="post" enctype="multipart/form-data">
+  <h2>Import your data</h2>
+  <label for="import-file">Choose a file</label>
+  <input type="file" id="import-file" name="file" accept=".csv,.json" required>
+  <label for="import-format">Format</label>
+  <select id="import-format" name="format">
+    <option value="csv">CSV</option>
+    <option value="json">JSON</option>
+    <option value="postgres">Postgres dump</option>
+  </select>
+  <p class="hint">Files up to 100 MB. Columns are mapped automatically.</p>
+  <button type="submit" class="btn btn-primary">Start import</button>
+</form>
+
+<form class="schedule-form" action="/schedule" method="post">
+  <h2>Pick a time</h2>
+  <label for="date">Date</label>
+  <input type="date" id="date" name="date" required>
+  <fieldset>
+    <legend>Available slots</legend>
+    <label><input type="radio" name="slot" value="09:00"> 09:00</label>
+    <label><input type="radio" name="slot" value="10:30"> 10:30</label>
+    <label><input type="radio" name="slot" value="13:00" checked> 13:00</label>
+    <label><input type="radio" name="slot" value="15:30" disabled> 15:30 (full)</label>
+  </fieldset>
+  <button type="submit" class="btn btn-primary">Confirm booking</button>
+</form>
+
+<form class="password-form" action="/password" method="post">
+  <h2>Change password</h2>
+  <label for="cur-pass">Current password</label>
+  <input type="password" id="cur-pass" name="current" required autocomplete="current-password">
+  <label for="new-pass">New password</label>
+  <input type="password" id="new-pass" name="new" minlength="10" required autocomplete="new-password">
+  <label for="confirm-pass">Confirm new password</label>
+  <input type="password" id="confirm-pass" name="confirm" required autocomplete="new-password">
+  <button type="submit" class="btn btn-primary">Update password</button>
+</form>
+
+<form class="review-form" action="/reviews" method="post">
+  <h2>Write a review</h2>
+  <p class="card-sub">Aurora Wireless Headphones</p>
+  <fieldset>
+    <legend>Your rating</legend>
+    <label><input type="radio" name="stars" value="5" checked> 5 — Excellent</label>
+    <label><input type="radio" name="stars" value="4"> 4 — Good</label>
+    <label><input type="radio" name="stars" value="3"> 3 — Average</label>
+    <label><input type="radio" name="stars" value="2"> 2 — Poor</label>
+    <label><input type="radio" name="stars" value="1"> 1 — Bad</label>
+  </fieldset>
+  <label for="review-title">Title</label>
+  <input type="text" id="review-title" name="title" required placeholder="Great sound, comfy fit">
+  <label for="review-body">Review</label>
+  <textarea id="review-body" name="body" rows="5" required></textarea>
+  <button type="submit" class="btn btn-primary">Submit review</button>
+</form>
+
+<form class="waitlist-form" action="/waitlist" method="post">
+  <h2>Join the waitlist</h2>
+  <p>We're rolling out access in waves. Leave your email and we'll notify you.</p>
+  <label for="wl-email">Email</label>
+  <input type="email" id="wl-email" name="email" required>
+  <label for="wl-role">What best describes you?</label>
+  <select id="wl-role" name="role">
+    <option value="engineer">Software engineer</option>
+    <option value="designer">Designer</option>
+    <option value="pm">Product manager</option>
+    <option value="other">Other</option>
+  </select>
+  <button type="submit" class="btn btn-primary">Notify me</button>
+</form>

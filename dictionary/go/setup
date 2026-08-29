@@ -1,0 +1,5 @@
+# vibetyper dictionary setup — go
+name = Go
+ext = go
+comment = //
+blockmode = braces

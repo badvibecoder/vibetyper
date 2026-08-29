@@ -1,0 +1,437 @@
+<section class="hero">
+  <h1>Ship software your customers love</h1>
+  <p class="lead">Deploy, monitor and iterate with a platform built for modern teams.</p>
+  <div class="hero-cta">
+    <a class="btn btn-primary" href="/signup">Start free trial</a>
+    <a class="btn" href="/demo">Book a demo</a>
+  </div>
+  <p class="hint">No credit card required · 14-day trial</p>
+</section>
+
+<section class="hero">
+  <h1>Analytics for the open web</h1>
+  <p class="lead">Privacy-friendly, real-time insights without the tracking baggage.</p>
+  <a class="btn btn-primary" href="/get-started">Get started</a>
+</section>
+
+<section class="hero">
+  <h1>A calendar that plans your day</h1>
+  <p class="lead">Smart scheduling that works around your deep-work blocks.</p>
+  <a class="btn btn-primary" href="/get-started">Get started</a>
+</section>
+
+<section class="features" aria-labelledby="features-heading">
+  <h2 id="features-heading">Everything you need to launch</h2>
+  <div class="feature-grid">
+    <article class="feature">
+      <h3>Instant deploys</h3>
+      <p>Push to main and your changes go live in under a minute.</p>
+    </article>
+    <article class="feature">
+      <h3>Global edge network</h3>
+      <p>Serve assets from 300+ cities around the world.</p>
+    </article>
+    <article class="feature">
+      <h3>Built-in monitoring</h3>
+      <p>Errors, latency and traffic in one dashboard.</p>
+    </article>
+    <article class="feature">
+      <h3>Preview environments</h3>
+      <p>Test every pull request in an isolated URL.</p>
+    </article>
+  </div>
+</section>
+
+<section class="about">
+  <h2>Our story</h2>
+  <p>Founded in 2019 in a shared office above a bakery, we set out to make
+  infrastructure boring — in the best way. Today a team of 40 works across
+  four time zones to keep the platform running for thousands of teams.</p>
+  <p>We believe tools should fade into the background and let people focus
+  on the work that matters.</p>
+</section>
+
+<section class="faq" aria-labelledby="faq-heading">
+  <h2 id="faq-heading">Frequently asked questions</h2>
+  <details>
+    <summary>Is there a free tier?</summary>
+    <p>Yes — the Starter plan is free forever for up to 3 projects.</p>
+  </details>
+  <details>
+    <summary>Can I migrate from another provider?</summary>
+    <p>We provide importers for the most common platforms and docs for custom migrations.</p>
+  </details>
+  <details>
+    <summary>Do you offer SSO?</summary>
+    <p>SSO is included on the Enterprise plan with SAML and OIDC support.</p>
+  </details>
+</section>
+
+<section class="contact" aria-labelledby="contact-heading">
+  <h2 id="contact-heading">Talk to us</h2>
+  <address>
+    Acme Software Inc.<br>
+    100 Harbor Street, Suite 4<br>
+    Portland, OR 97201
+  </address>
+  <p>Email: <a href="mailto:hello@acme.io">hello@acme.io</a></p>
+  <p>Phone: <a href="tel:+15035550142">+1 (503) 555-0142</a></p>
+</section>
+
+<section class="gallery" aria-label="Project gallery">
+  <h2>Recent work</h2>
+  <div class="gallery-grid">
+    <figure>
+      <img src="/img/work-01.jpg" alt="Riverside housing cooperative website">
+      <figcaption>Riverside Cooperative</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/work-02.jpg" alt="Kinfolk cafe brand site">
+      <figcaption>Kinfolk Cafe</figcaption>
+    </figure>
+    <figure>
+      <img src="/img/work-03.jpg" alt="Trailhead festival campaign">
+      <figcaption>Trailhead Festival</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="stats" aria-label="Key numbers">
+  <div class="stat">
+    <p class="stat-value">12k+</p>
+    <p class="stat-label">Teams on the platform</p>
+  </div>
+  <div class="stat">
+    <p class="stat-value">99.99%</p>
+    <p class="stat-label">Uptime SLA</p>
+  </div>
+  <div class="stat">
+    <p class="stat-value">180ms</p>
+    <p class="stat-label">Median edge latency</p>
+  </div>
+  <div class="stat">
+    <p class="stat-value">4.9/5</p>
+    <p class="stat-label">Average support rating</p>
+  </div>
+</section>
+
+<section class="team" aria-labelledby="team-heading">
+  <h2 id="team-heading">Meet the team</h2>
+  <ul class="team-grid">
+    <li>
+      <img src="/img/team-elena.jpg" alt="Portrait of Elena Petrova" width="80" height="80">
+      <h3>Elena Petrova</h3>
+      <p>Founder & CEO</p>
+    </li>
+    <li>
+      <img src="/img/team-marcus.jpg" alt="Portrait of Marcus Webb" width="80" height="80">
+      <h3>Marcus Webb</h3>
+      <p>CTO</p>
+    </li>
+    <li>
+      <img src="/img/team-ines.jpg" alt="Portrait of Ines Costa" width="80" height="80">
+      <h3>Ines Costa</h3>
+      <p>Head of Design</p>
+    </li>
+  </ul>
+</section>
+
+<article class="blog-post">
+  <header>
+    <h1>Lessons from Running Postgres at Scale</h1>
+    <p class="post-meta">
+      By <a href="/authors/dana">Dana Kwan</a> · Published
+      <time datetime="2025-02-20">February 20, 2025</time>
+    </p>
+  </header>
+  <p>Two years ago our analytics cluster hit a wall. Queries that took
+  seconds now took minutes, and the pager rang more often than anyone
+  liked. Here is what we changed, in the order that mattered most.</p>
+  <h2>Start with the slow queries</h2>
+  <p>Before touching infrastructure, we enabled <code>pg_stat_statements</code>
+  and ranked queries by total execution time. The top ten accounted for
+  nearly 60% of all database CPU.</p>
+  <h2>Partition early, not late</h2>
+  <p>Event tables grow without mercy. Range partitioning by month kept our
+  largest tables manageable and made retention deletes nearly free.</p>
+</article>
+
+<section class="cta-banner">
+  <h2>Ready to get started?</h2>
+  <p>Join 12,000 teams already shipping faster with Acme.</p>
+  <a class="btn btn-primary" href="/signup">Create free account</a>
+</section>
+
+<section class="logos" aria-label="Trusted by">
+  <h2 class="visually-hidden">Companies using our platform</h2>
+  <ul class="logo-list">
+    <li>Northwind</li>
+    <li>Relay Systems</li>
+    <li>Vela Retail</li>
+    <li>Bluebird Coffee</li>
+    <li>Crestline Bank</li>
+  </ul>
+</section>
+
+<section class="process" aria-labelledby="process-heading">
+  <h2 id="process-heading">How it works</h2>
+  <ol class="process-steps">
+    <li>
+      <h3>Connect your repo</h3>
+      <p>Link GitHub, GitLab or Bitbucket in two clicks.</p>
+    </li>
+    <li>
+      <h3>Deploy on every push</h3>
+      <p>We build, test and ship with zero config.</p>
+    </li>
+    <li>
+      <h3>Monitor and iterate</h3>
+      <p>Watch metrics, roll back instantly, ship again.</p>
+    </li>
+  </ol>
+</section>
+
+<section class="newsletter">
+  <h2>Stay in the loop</h2>
+  <p>Product updates, engineering deep dives and occasional cat photos.</p>
+  <form action="/subscribe" method="post">
+    <label class="visually-hidden" for="nl-email">Email</label>
+    <input type="email" id="nl-email" name="email" required placeholder="you@example.com">
+    <button type="submit" class="btn btn-primary">Subscribe</button>
+  </form>
+</section>
+
+<footer class="site-footer">
+  <div class="footer-col">
+    <p class="brand">Acme</p>
+    <p>Built for teams who ship.</p>
+  </div>
+  <nav class="footer-nav" aria-label="Footer">
+    <ul>
+      <li><a href="/about">About</a></li>
+      <li><a href="/careers">Careers</a></li>
+      <li><a href="/press">Press</a></li>
+      <li><a href="/contact">Contact</a></li>
+    </ul>
+  </nav>
+  <p class="footer-legal">© 2025 Acme Software Inc. All rights reserved.</p>
+</footer>
+
+<footer class="site-footer">
+  <div class="footer-brand">
+    <p class="brand">Maple Street Books</p>
+  </div>
+  <div class="footer-columns">
+    <nav aria-label="Product">
+      <h2>Product</h2>
+      <ul>
+        <li><a href="/features">Features</a></li>
+        <li><a href="/pricing">Pricing</a></li>
+        <li><a href="/changelog">Changelog</a></li>
+      </ul>
+    </nav>
+    <nav aria-label="Company">
+      <h2>Company</h2>
+      <ul>
+        <li><a href="/blog">Blog</a></li>
+        <li><a href="/jobs">Jobs</a></li>
+        <li><a href="/privacy">Privacy</a></li>
+        <li><a href="/terms">Terms</a></li>
+      </ul>
+    </nav>
+  </div>
+  <p class="footer-legal">© 2025 Maple Street Books. All rights reserved.</p>
+</footer>
+
+<footer class="site-footer">
+  <div class="footer-brand">
+    <p class="brand">Kinfolk Studio</p>
+  </div>
+  <div class="footer-columns">
+    <nav aria-label="Product">
+      <h2>Product</h2>
+      <ul>
+        <li><a href="/features">Features</a></li>
+        <li><a href="/pricing">Pricing</a></li>
+        <li><a href="/changelog">Changelog</a></li>
+      </ul>
+    </nav>
+    <nav aria-label="Company">
+      <h2>Company</h2>
+      <ul>
+        <li><a href="/blog">Blog</a></li>
+        <li><a href="/jobs">Jobs</a></li>
+        <li><a href="/privacy">Privacy</a></li>
+        <li><a href="/terms">Terms</a></li>
+      </ul>
+    </nav>
+  </div>
+  <p class="footer-legal">© 2025 Kinfolk Studio. All rights reserved.</p>
+</footer>
+
+<section class="hero hero-split">
+  <div class="hero-copy">
+    <p class="card-tag">New: Realtime sync</p>
+    <h1>Work together without the lag</h1>
+    <p class="lead">See teammates' cursors, comments and changes as they happen.</p>
+    <a class="btn btn-primary" href="/signup">Try it free</a>
+  </div>
+  <img src="/img/hero-editor.png" alt="Collaborative editor in action" width="520" height="360">
+</section>
+
+<section class="testimonials" aria-labelledby="t-heading">
+  <h2 id="t-heading">What customers say</h2>
+  <div class="testimonial-grid">
+    <figure>
+      <blockquote>
+        <p>Support answered within four minutes — on a Sunday. That alone sold us.</p>
+      </blockquote>
+      <figcaption>— Priya Sharma, VP Engineering at Northwind</figcaption>
+    </figure>
+    <figure>
+      <blockquote>
+        <p>We replaced three tools with this one. The ROI was obvious by month two.</p>
+      </blockquote>
+      <figcaption>— Diego Fuentes, CTO at Relay Systems</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="how-it-works">
+  <h2>From idea to production in one afternoon</h2>
+  <ol class="process-steps">
+    <li>
+      <h3>Import your repository</h3>
+      <p>We detect your stack and generate a build pipeline automatically.</p>
+    </li>
+    <li>
+      <h3>Deploy to preview</h3>
+      <p>Every pull request gets its own URL with real data wiring.</p>
+    </li>
+    <li>
+      <h3>Promote to production</h3>
+      <p>One click, zero downtime, instant rollback if needed.</p>
+    </li>
+  </ol>
+</section>
+
+<section class="values" aria-labelledby="values-heading">
+  <h2 id="values-heading">What we stand for</h2>
+  <ul class="value-list">
+    <li>
+      <h3>Clarity over cleverness</h3>
+      <p>Simple code, plain words, honest numbers.</p>
+    </li>
+    <li>
+      <h3>Boring reliability</h3>
+      <p>The most exciting outage is the one that never happens.</p>
+    </li>
+    <li>
+      <h3>Default to open</h3>
+      <p>Public roadmaps, transparent pricing, readable changelogs.</p>
+    </li>
+  </ul>
+</section>
+
+<article class="guide">
+  <header>
+    <p class="card-tag">Guide</p>
+    <h1>Migrating from Heroku to Acme</h1>
+    <p class="post-meta">By <a href="/authors/marcus">Marcus Webb</a> · 20 min read</p>
+  </header>
+  <p>This guide walks through a typical migration for a Node.js app with a
+  managed Postgres database, including the parts people usually forget:
+  background workers, cron jobs and attachments.</p>
+  <h2>Before you start</h2>
+  <ul>
+    <li>Export your environment variables</li>
+    <li>Take a snapshot of your database</li>
+    <li>Note any add-on services you depend on</li>
+  </ul>
+</article>
+
+<section class="press-kit">
+  <h2>Press kit</h2>
+  <p>Logos, screenshots and brand assets for journalists and partners.</p>
+  <ul class="asset-list">
+    <li><a href="/press/logo-svg.zip">Logo (SVG)</a></li>
+    <li><a href="/press/screenshots.zip">Product screenshots</a></li>
+    <li><a href="/press/fact-sheet.pdf">Fact sheet</a></li>
+  </ul>
+</section>
+
+<section class="reviews-summary" aria-label="Review summary">
+  <h2>Customer reviews</h2>
+  <p class="rating" aria-label="Rated 4.6 out of 5">
+    <span aria-hidden="true">★★★★★</span> 4.6
+  </p>
+  <dl class="rating-bars">
+    <dt>5 stars</dt><dd><progress value="78" max="100">78%</progress></dd>
+    <dt>4 stars</dt><dd><progress value="14" max="100">14%</progress></dd>
+    <dt>3 stars</dt><dd><progress value="5" max="100">5%</progress></dd>
+    <dt>2 stars</dt><dd><progress value="2" max="100">2%</progress></dd>
+    <dt>1 star</dt><dd><progress value="1" max="100">1%</progress></dd>
+  </dl>
+</section>
+
+<article class="press-release">
+  <header>
+    <h1>Acme raises $40M Series B to expand edge platform</h1>
+    <p class="post-meta"><time datetime="2025-02-18">February 18, 2025</time> · Portland, OR</p>
+  </header>
+  <p>Acme, the deployment and hosting platform used by 12,000 teams, today
+  announced a $40 million Series B round led by Meridian Capital.</p>
+  <p>The funding will accelerate work on the global edge network and expand
+  the team across engineering, design and customer success.</p>
+</article>
+
+<section class="pricing-faq">
+  <h2>Billing questions</h2>
+  <details>
+    <summary>Can I switch plans mid-cycle?</summary>
+    <p>Yes — upgrades apply immediately with prorated billing; downgrades apply at renewal.</p>
+  </details>
+  <details>
+    <summary>Do you offer annual billing?</summary>
+    <p>Yes, annual billing saves 20% compared to monthly.</p>
+  </details>
+  <details>
+    <summary>What payment methods are accepted?</summary>
+    <p>We accept all major credit cards, bank transfers and invoicing for Enterprise plans.</p>
+  </details>
+</section>
+
+<section class="office-hours">
+  <h2>Support hours</h2>
+  <dl>
+    <dt>Email</dt>
+    <dd>24/7, response within 4 hours</dd>
+    <dt>Chat</dt>
+    <dd>Mon–Fri, 08:00–20:00 UTC</dd>
+    <dt>Phone (Enterprise)</dt>
+    <dd>24/7, dedicated line</dd>
+  </dl>
+</section>
+
+<section class="case-study">
+  <p class="card-tag">Case study</p>
+  <h2>How Vela Retail cut deploy time by 94%</h2>
+  <blockquote>
+    <p>What used to take a full release day now ships while we're still in standup.</p>
+  </blockquote>
+  <p class="post-meta">— Ines Costa, Head of Data, Vela Retail</p>
+  <a class="card-link" href="/case-studies/vela-retail">Read the full story</a>
+</section>
+
+<section class="integrations" aria-labelledby="integrations-heading">
+  <h2 id="integrations-heading">Integrates with your stack</h2>
+  <ul class="integration-list">
+    <li><a href="/integrations/github">GitHub</a></li>
+    <li><a href="/integrations/slack">Slack</a></li>
+    <li><a href="/integrations/datadog">Datadog</a></li>
+    <li><a href="/integrations/pagerduty">PagerDuty</a></li>
+    <li><a href="/integrations/stripe">Stripe</a></li>
+    <li><a href="/integrations/terraform">Terraform</a></li>
+  </ul>
+  <p><a class="card-link" href="/integrations">Browse all 40+ integrations</a></p>
+</section>

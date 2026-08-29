@@ -1,0 +1,14 @@
+{
+  "name": "vibetyper",
+  "version": "1.0.0",
+  "description": "Retrowave typing trainer for real code — train your WPM on Python (and more). Zero runtime dependencies.",
+  "type": "module",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

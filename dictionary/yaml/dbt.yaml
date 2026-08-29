@@ -1,0 +1,239 @@
+version: 2
+sources:
+  - name: ecommerce
+    database: analytics
+    schema: raw
+    tables:
+      - name: orders
+        description: Raw order events from the checkout service
+        columns:
+          - name: order_id
+            tests:
+              - unique
+              - not_null
+      - name: customers
+        loaded_at_field: ingested_at
+        freshness:
+          warn_after: {count: 24, period: hour}
+          error_after: {count: 72, period: hour}
+
+version: 2
+sources:
+  - name: web_analytics
+    database: bigquery-public-data
+    schema: ga4_obfuscated_sample_ecommerce
+    tables:
+      - name: events_20240101
+        columns:
+          - name: event_name
+          - name: user_pseudo_id
+          - name: event_timestamp
+      - name: events_20240102
+
+version: 2
+models:
+  - name: stg_orders
+    description: Staged orders with cleaned payment status
+    columns:
+      - name: order_id
+        tests:
+          - unique
+          - not_null
+      - name: status
+        tests:
+          - accepted_values:
+              values: ['placed', 'shipped', 'delivered', 'cancelled']
+    config:
+      materialized: view
+  - name: stg_payments
+    description: Staged payment records from the ledger
+    columns:
+      - name: payment_id
+        tests:
+          - unique
+          - not_null
+      - name: amount
+        tests:
+          - not_null
+
+version: 2
+models:
+  - name: dim_customers
+    config:
+      materialized: table
+      tags: ["core"]
+    columns:
+      - name: customer_id
+        tests:
+          - unique
+          - not_null
+      - name: lifetime_value
+        tests:
+          - not_null
+  - name: fct_orders
+    config:
+      materialized: incremental
+      unique_key: order_id
+      incremental_strategy: merge
+    columns:
+      - name: order_id
+        tests:
+          - unique
+          - not_null
+
+version: 2
+seeds:
+  - name: country_codes
+    config:
+      delimiter: ";"
+      quote: '"'
+  - name: sales_regions
+    config:
+      schema: lookup
+      column_types:
+        region_id: integer
+        region_name: varchar(64)
+
+version: 2
+exposures:
+  - name: weekly_revenue_dashboard
+    label: Weekly Revenue
+    type: dashboard
+    url: https://looker.example.com/dashboards/revenue
+    depends_on:
+      - ref("fct_orders")
+      - ref("dim_customers")
+    owner:
+      name: Finance Analytics
+      email: finance-analytics@example.com
+
+version: 2
+snapshots:
+  - name: customers_snapshot
+    config:
+      strategy: timestamp
+      updated_at: updated_at
+      target_schema: snapshots
+      unique_key: customer_id
+    source: raw.customers
+
+version: 2
+macros:
+  - name: cents_to_dollars
+    arguments:
+      - name: amount
+        type: integer
+      - name: decimal_places
+        type: integer
+        default: 2
+  - name: generate_surrogate_key
+    arguments:
+      - name: fields
+        type: list
+
+packages:
+  - package: dbt-labs/dbt_utils
+    version: 1.2.0
+  - package: dbt-labs/codegen
+    version: 0.12.1
+  - git: "https://github.com/acme/dbt-packages.git"
+    revision: main
+
+name: analytics
+version: "1.0.0"
+config-version: 2
+profile: analytics
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+models:
+  staging:
+    +materialized: view
+  marts:
+    +materialized: table
+
+version: 2
+sources:
+  - name: stripe
+    database: analytics
+    schema: stripe
+    tables:
+      - name: charges
+        description: Stripe charges
+        columns:
+          - name: id
+            tests: [unique, not_null]
+          - name: amount
+      - name: refunds
+        freshness:
+          warn_after: {count: 12, period: hour}
+          error_after: {count: 48, period: hour}
+
+version: 2
+metrics:
+  - name: revenue
+    label: Revenue
+    model: ref('fct_orders')
+    description: Total order revenue.
+    calculation_method: sum
+    expression: total_amount
+    timestamp: created_at
+    time_grains: [day, week, month]
+    dimensions:
+      - country
+      - region
+
+version: 2
+metrics:
+  - name: new_customers
+    label: New Customers
+    model: ref('dim_customers')
+    description: Count of customers created in the period.
+    calculation_method: count_distinct
+    expression: customer_id
+    timestamp: created_at
+    time_grains: [day, week]
+    filters:
+      - field: is_test_account
+        operator: '='
+        value: 'false'
+
+version: 2
+tests:
+  - name: assert_order_amount_positive
+    description: Order totals must always be positive.
+  - name: assert_charge_matches_invoice
+    description: Stripe charges must reference a valid invoice.
+  - name: assert_sku_not_blank
+
+version: 2
+exposures:
+  - name: executive_kpis
+    label: Executive KPIs
+    type: dashboard
+    url: https://superset.example.com/dashboards/7
+    depends_on:
+      - ref("fct_orders")
+      - metric("revenue")
+    owner:
+      name: Exec Reporting
+      email: exec-reporting@example.com
+
+name: analytics
+version: "1.0.0"
+config-version: 2
+profile: analytics
+models:
+  marts:
+    +materialized: table
+    +incremental_strategy: delete+insert
+    +pre-hook: "{{ log('building marts', info=True) }}"
+on-run-end:
+  - "{{ log('Run complete', info=True) }}"

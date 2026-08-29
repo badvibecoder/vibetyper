@@ -1,0 +1,311 @@
+- name: Update apt cache
+  hosts: all
+  become: true
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: true
+        cache_valid_time: 3600
+    - name: Upgrade all packages
+      apt:
+        upgrade: dist
+        autoremove: true
+
+- name: Deploy web application
+  hosts: web
+  become: true
+  vars:
+    app_dir: /srv/app
+    app_user: www-data
+  tasks:
+    - name: Create application directory
+      file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: "{{ app_user }}"
+    - name: Copy application artifacts
+      copy:
+        src: ./dist/
+        dest: "{{ app_dir }}/public"
+        owner: "{{ app_user }}"
+    - name: Restart web service
+      systemd:
+        name: app-web
+        state: restarted
+        daemon_reload: true
+
+- name: Configure nginx vhost
+  hosts: proxy
+  become: true
+  tasks:
+    - name: Write site configuration
+      template:
+        src: templates/site.conf.j2
+        dest: /etc/nginx/sites-available/app.conf
+    - name: Enable site
+      file:
+        src: /etc/nginx/sites-available/app.conf
+        dest: /etc/nginx/sites-enabled/app.conf
+        state: link
+    - name: Test configuration
+      command: nginx -t
+      notify: reload nginx
+  handlers:
+    - name: reload nginx
+      service:
+        name: nginx
+        state: reloaded
+
+- name: Provision database user
+  hosts: db
+  become: true
+  tasks:
+    - name: Create application user
+      postgresql_user:
+        name: app
+        password: "{{ db_password }}"
+        db: app
+        role_attr_flags: LOGIN
+    - name: Grant schema privileges
+      postgresql_privs:
+        db: app
+        objs: public
+        privs: SELECT,INSERT,UPDATE,DELETE
+        role: app
+    - name: Create backup role
+      postgresql_user:
+        name: backup_user
+        password: "{{ backup_password }}"
+        role_attr_flags: REPLICATION
+
+- name: Harden server firewall
+  hosts: all
+  become: true
+  tasks:
+    - name: Allow SSH
+      ufw:
+        rule: allow
+        port: "22"
+        proto: tcp
+    - name: Allow web traffic
+      ufw:
+        rule: allow
+        port: "{{ item }}"
+        proto: tcp
+      loop:
+        - "80"
+        - "443"
+    - name: Enable firewall
+      ufw:
+        state: enabled
+        policy: deny
+
+- name: Install monitoring agents
+  hosts: all
+  become: true
+  tasks:
+    - name: Install node_exporter
+      get_url:
+        url: https://github.com/prometheus/node_exporter/releases/download/v1.8.2/node_exporter-1.8.2.linux-amd64.tar.gz
+        dest: /opt/node_exporter.tar.gz
+    - name: Extract archive
+      unarchive:
+        src: /opt/node_exporter.tar.gz
+        dest: /opt
+        remote_src: true
+    - name: Enable node_exporter service
+      systemd:
+        name: node_exporter
+        enabled: true
+        state: started
+
+- name: Add deploy users
+  hosts: all
+  become: true
+  tasks:
+    - name: Create user accounts
+      user:
+        name: "{{ item.name }}"
+        groups: "{{ item.groups | default([]) }}"
+        shell: /bin/bash
+      loop:
+        - {name: alice, groups: [sudo, docker]}
+        - {name: bob, groups: [www-data]}
+    - name: Install SSH keys
+      authorized_key:
+        user: "{{ item.name }}"
+        key: "{{ item.key }}"
+      loop:
+        - {name: alice, key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA... alice@laptop"}
+        - {name: bob, key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQ... bob@work"}
+
+- name: Schedule nightly backups
+  hosts: db
+  become: true
+  tasks:
+    - name: Install backup script
+      copy:
+        src: files/backup.sh
+        dest: /usr/local/bin/backup.sh
+        mode: "0755"
+    - name: Add cron job
+      cron:
+        name: nightly pg_dump
+        minute: "30"
+        hour: "2"
+        job: /usr/local/bin/backup.sh > /var/log/backup.log 2>&1
+    - name: Add retention cleanup
+      cron:
+        name: prune old backups
+        weekday: "0"
+        job: find /backups -name "*.sql.gz" -mtime +14 -delete
+
+- name: Run application container
+  hosts: app
+  become: true
+  tasks:
+    - name: Pull latest image
+      docker_image:
+        name: registry.example.com/app:latest
+        source: pull
+    - name: Start container
+      docker_container:
+        name: app
+        image: registry.example.com/app:latest
+        state: started
+        restart_policy: unless-stopped
+        ports:
+          - "8080:8080"
+        env:
+          NODE_ENV: production
+
+- name: Install Node.js
+  hosts: all
+  become: true
+  tasks:
+    - name: Add NodeSource repository
+      apt_repository:
+        repo: "deb https://deb.nodesource.com/node_20.x noble main"
+        state: present
+    - name: Install Node.js
+      apt:
+        name: nodejs
+        state: latest
+        update_cache: true
+
+- name: Deploy from git
+  hosts: app
+  become: true
+  vars:
+    repo: https://github.com/acme/api.git
+    dest: /srv/api
+  tasks:
+    - name: Clone repository
+      git:
+        repo: "{{ repo }}"
+        dest: "{{ dest }}"
+        version: main
+        force: true
+    - name: Install dependencies
+      pip:
+        requirements: "{{ dest }}/requirements.txt"
+        virtualenv: "{{ dest }}/venv"
+    - name: Restart service
+      service:
+        name: api
+        state: restarted
+
+- name: Issue Let's Encrypt certificate
+  hosts: proxy
+  become: true
+  tasks:
+    - name: Install certbot
+      apt:
+        name: certbot
+        state: present
+    - name: Obtain certificate
+      command: certbot certonly --webroot -w /var/www/html -d app.example.com -d www.app.example.com --non-interactive --agree-tos -m admin@example.com
+      args:
+        creates: /etc/letsencrypt/live/app.example.com/fullchain.pem
+
+- name: Configure log rotation
+  hosts: all
+  become: true
+  tasks:
+    - name: Write logrotate config
+      copy:
+        dest: /etc/logrotate.d/app
+        content: |
+          /var/log/app/*.log {
+            daily
+            rotate 14
+            compress
+            delaycompress
+            missingok
+            notifempty
+            create 0640 www-data www-data
+          }
+
+- name: Load secrets into app config
+  hosts: app
+  become: true
+  vars_files:
+    - secrets/vault.yml
+  tasks:
+    - name: Write env file
+      template:
+        src: templates/app.env.j2
+        dest: /etc/app.env
+        owner: www-data
+        mode: "0600"
+      notify: restart app
+  handlers:
+    - name: restart app
+      systemd:
+        name: app
+        state: restarted
+
+- name: Install PostgreSQL
+  hosts: db
+  become: true
+  tasks:
+    - name: Install packages
+      apt:
+        name:
+          - postgresql
+          - postgresql-contrib
+        state: present
+        update_cache: true
+    - name: Enable service
+      systemd:
+        name: postgresql
+        enabled: true
+        state: started
+    - name: Create application user
+      become_user: postgres
+      postgresql_user:
+        name: app
+        password: "{{ app_db_password }}"
+        role_attr_flags: LOGIN
+
+- name: Prepare swap on small instances
+  hosts: all
+  become: true
+  when: ansible_memtotal_mb < 2048
+  tasks:
+    - name: Create swap file
+      command: fallocate -l 2G /swapfile
+      args:
+        creates: /swapfile
+    - name: Set permissions
+      file:
+        path: /swapfile
+        mode: "0600"
+    - name: Enable swap
+      command: mkswap /swapfile && swapon /swapfile
+      args:
+        creates: /dev/shm/swap-enabled
+    - name: Make persistent
+      lineinfile:
+        path: /etc/fstab
+        line: "/swapfile none swap sw 0 0"

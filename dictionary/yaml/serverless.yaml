@@ -1,0 +1,103 @@
+service: checkout-api
+frameworkVersion: "3"
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: us-east-1
+  environment:
+    TABLE_NAME: ${self:custom.tableName}
+    STRIPE_KEY: ${ssm:/checkout/stripe/key}
+functions:
+  createCheckout:
+    handler: handlers/checkout.create
+    events:
+      - http:
+          path: checkout
+          method: post
+          cors: true
+  webhook:
+    handler: handlers/webhook.handle
+    events:
+      - http:
+          path: webhook
+          method: post
+custom:
+  tableName: checkout-${sls:stage}
+
+service: image-processor
+provider:
+  name: aws
+  runtime: python3.12
+  iam:
+    role: arn:aws:iam::123456789012:role/lambda-s3-role
+functions:
+  resize:
+    handler: handler.resize
+    events:
+      - s3:
+          bucket: acme-uploads
+          event: s3:ObjectCreated:*
+          rules:
+            - prefix: originals/
+resources:
+  Resources:
+    ThumbnailBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: acme-thumbnails
+
+service: ingest
+provider:
+  name: aws
+  runtime: go1.x
+functions:
+  consume:
+    handler: bin/consume
+    events:
+      - sqs:
+          arn: arn:aws:sqs:us-east-1:123456789012:ingest-queue
+          batchSize: 10
+      - schedule:
+          rate: rate(5 minutes)
+          enabled: true
+
+service: notifications
+provider:
+  name: aws
+  runtime: nodejs20.x
+functions:
+  dispatch:
+    handler: index.dispatch
+    timeout: 30
+    memorySize: 256
+    events:
+      - sns:
+          topicName: user-events
+      - sqs:
+          arn: !GetAtt Queue.Arn
+resources:
+  Resources:
+    Queue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: dispatch-queue
+        VisibilityTimeout: 60
+
+service: api-gateway-auth
+provider:
+  name: aws
+  runtime: nodejs20.x
+functions:
+  authorizer:
+    handler: auth.authorize
+    events:
+      - http:
+          path: authorize
+          method: get
+  hello:
+    handler: handler.hello
+    events:
+      - http:
+          path: hello
+          method: get
+          authorizer: authorizer

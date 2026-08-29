@@ -1,0 +1,5 @@
+# vibetyper dictionary setup — zig
+name = Zig
+ext = zig
+comment = //
+blockmode = braces

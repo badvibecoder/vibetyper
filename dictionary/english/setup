@@ -1,0 +1,6 @@
+# vibetyper dictionary setup — english
+name = English
+ext = txt
+comment = #
+blockmode = blank
+wrap = true

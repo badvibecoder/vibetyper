@@ -1,0 +1,5 @@
+# vibetyper dictionary setup — javascript
+name = JavaScript
+ext = js
+comment = //
+blockmode = braces

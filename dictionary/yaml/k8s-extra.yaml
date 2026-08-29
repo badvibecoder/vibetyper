@@ -1,0 +1,499 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api-pdb
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: api
+
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: team-quota
+  namespace: apps
+spec:
+  hard:
+    requests.cpu: "8"
+    requests.memory: 16Gi
+    limits.cpu: "16"
+    limits.memory: 32Gi
+    pods: "40"
+
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-limits
+  namespace: apps
+spec:
+  limits:
+    - default:
+        cpu: 500m
+        memory: 512Mi
+      defaultRequest:
+        cpu: 100m
+        memory: 128Mi
+      type: Container
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: prod-gateway
+spec:
+  gatewayClassName: nginx
+  listeners:
+    - name: http
+      port: 80
+      protocol: HTTP
+    - name: https
+      port: 443
+      protocol: HTTPS
+      tls:
+        certificateRefs:
+          - name: wildcard-tls
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: api-route
+spec:
+  parentRefs:
+    - name: prod-gateway
+  hostnames:
+    - api.example.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /v1
+      backendRefs:
+        - name: api
+          port: 8080
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: payments
+  namespace: argocd
+spec:
+  project: platform
+  source:
+    repoURL: https://github.com/acme/platform-charts
+    path: charts/payments
+    targetRevision: main
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: payments
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    jsonData:
+      maxLines: 1000
+  - name: Postgres
+    type: postgres
+    url: postgres:5432
+    database: grafana
+    user: grafana
+    secureJsonData:
+      password: grafana
+    jsonData:
+      sslmode: disable
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: api-monitor
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: api
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics
+      honorLabels: true
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: worker-monitor
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: worker
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics
+      honorLabels: true
+
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: app-tls
+  namespace: apps
+spec:
+  secretName: app-tls-secret
+  dnsNames:
+    - app.example.com
+    - www.app.example.com
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: app-tls
+  namespace: apps
+spec:
+  secretName: app-tls-secret
+  dnsNames:
+    - portal.example.org
+    - www.portal.example.org
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: db-credentials
+  namespace: apps
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: vault-backend
+    kind: SecretStore
+  target:
+    name: db-credentials
+  data:
+    - secretKey: password
+      remoteRef:
+        key: secret/db-credentials
+        property: password
+
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: stripe-keys
+  namespace: apps
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: vault-backend
+    kind: SecretStore
+  target:
+    name: stripe-keys
+  data:
+    - secretKey: secret-key
+      remoteRef:
+        key: secret/stripe-keys
+        property: secret-key
+
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: api
+  namespace: apps
+spec:
+  interval: 5m
+  chart:
+    spec:
+      chart: api
+      version: "3.2.0"
+      sourceRef:
+        kind: HelmRepository
+        name: acme-charts
+        namespace: flux-system
+  values:
+    replicaCount: 3
+    image:
+      tag: "1.12.0"
+    ingress:
+      enabled: true
+
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: cron-jobs
+  namespace: apps
+spec:
+  interval: 5m
+  chart:
+    spec:
+      chart: cronjob
+      version: "1.8.4"
+      sourceRef:
+        kind: HelmRepository
+        name: acme-charts
+        namespace: flux-system
+  values:
+    replicaCount: 3
+    image:
+      tag: "1.12.0"
+    ingress:
+      enabled: true
+
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: apps
+  namespace: flux-system
+spec:
+  interval: 10m
+  path: ./clusters/prod/apps
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: infra
+  postBuild:
+    substitute:
+      env: prod
+      image_tag: "1.12.0"
+
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: nightly-etl-
+spec:
+  entrypoint: main
+  templates:
+    - name: main
+      steps:
+        - - name: extract
+            template: extract
+        - - name: load
+            template: load
+    - name: extract
+      container:
+        image: ghcr.io/acme/extract:1.1.0
+        args: ["--date", "{{workflow.creationTimestamp}}"]
+    - name: load
+      container:
+        image: ghcr.io/acme/load:1.1.0
+
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: build-deploy
+spec:
+  params:
+    - name: version
+      type: string
+  tasks:
+    - name: build-image
+      taskRef:
+        name: buildah
+      params:
+        - name: IMAGE
+          value: registry.example.com/app:$(params.version)
+    - name: deploy
+      taskRef:
+        name: kubectl-apply
+      runAfter:
+        - build-image
+      params:
+        - name: MANIFEST
+          value: deploy.yaml
+
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: checkout
+spec:
+  hosts:
+    - checkout.example.com
+  http:
+    - match:
+        - uri:
+            prefix: /api
+      route:
+        - destination:
+            host: checkout-api
+            port:
+              number: 8080
+      timeout: 5s
+      retries:
+        attempts: 3
+        perTryTimeout: 2s
+
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: api-canary
+spec:
+  hosts:
+    - api.example.com
+  http:
+    - route:
+        - destination:
+            host: api
+            subset: stable
+          weight: 90
+        - destination:
+            host: api
+            subset: canary
+          weight: 10
+
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: api
+spec:
+  host: api
+  subsets:
+    - name: stable
+      labels:
+        version: v1
+    - name: canary
+      labels:
+        version: v2
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: main
+spec:
+  instances: 3
+  storage:
+    size: 100Gi
+  postgresql:
+    parameters:
+      shared_buffers: "512MB"
+      max_connections: "200"
+  backup:
+    barmanObjectStore:
+      destinationPath: s3://acme-backups/postgres
+      walArchiver: true
+
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: reporting
+spec:
+  instances: 3
+  storage:
+    size: 250Gi
+  postgresql:
+    parameters:
+      shared_buffers: "512MB"
+      max_connections: "200"
+  backup:
+    barmanObjectStore:
+      destinationPath: s3://acme-backups/postgres
+      walArchiver: true
+
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: events-cluster
+spec:
+  kafka:
+    replicas: 3
+    storage:
+      type: jbod
+      volumes:
+        - id: 0
+          type: persistent-claim
+          size: 500Gi
+    listeners:
+      - name: plain
+        port: 9092
+        type: internal
+        tls: false
+  zookeeper:
+    replicas: 3
+    storage:
+      type: persistent-claim
+      size: 50Gi
+  entityOperator:
+    topicOperator: {}
+
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: daily-cluster
+spec:
+  schedule: "0 3 * * *"
+  template:
+    includedNamespaces:
+      - apps
+      - data
+    storageLocation: default
+    ttl: 720h
+    defaultVolumesToFsBackup: true
+
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-labels
+spec:
+  validationFailureAction: Enforce
+  rules:
+    - name: check-team-label
+      match:
+        any:
+          - resources:
+              kinds:
+                - Deployment
+      validate:
+        message: "resource must include the team label"
+        pattern:
+          metadata:
+            labels:
+              team: "?*"
+
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  name: api-keys
+  namespace: apps
+spec:
+  encryptedData:
+    secret-key: AgBy3i4OJSWK+PiTySYZZA9rO43cGDEq
+  template:
+    metadata:
+      name: api-keys
+      namespace: apps
+    type: Opaque
+
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8srequiredlabels
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sRequiredLabels
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8srequiredlabels
+        violation[{"msg": msg}] {
+          required := input.parameters.labels[_]
+          provided := input.review.object.metadata.labels
+          not required in provided
+          msg := sprintf("missing required label: %v", [required])
+        }

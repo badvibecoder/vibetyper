@@ -1,0 +1,146 @@
+stages:
+  - test
+  - build
+  - deploy
+variables:
+  NODE_VERSION: "20"
+test:
+  stage: test
+  image: node:${NODE_VERSION}
+  script:
+    - npm ci
+    - npm test
+  cache:
+    key: npm-cache
+    paths:
+      - node_modules/
+build:
+  stage: build
+  image: docker:27
+  services:
+    - docker:27-dind
+  script:
+    - docker build -t registry.example.com/app:${CI_COMMIT_SHORT_SHA} .
+    - docker push registry.example.com/app:${CI_COMMIT_SHORT_SHA}
+
+stages:
+  - lint
+  - test
+flake8:
+  stage: lint
+  image: python:3.12
+  script:
+    - pip install flake8
+    - flake8 app tests
+pytest:
+  stage: test
+  image: python:3.12
+  services:
+    - postgres:16-alpine
+  variables:
+    POSTGRES_DB: test
+    POSTGRES_USER: test
+    POSTGRES_PASSWORD: test
+    DATABASE_URL: postgres://test:test@postgres:5432/test
+  script:
+    - pip install -e ".[dev]"
+    - pytest -q
+
+stages:
+  - deploy
+deploy_staging:
+  stage: deploy
+  image: alpine:3.20
+  before_script:
+    - apk add --no-cache openssh-client
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | ssh-add -
+  script:
+    - ssh deploy@staging.example.com "cd /srv/app && git pull && systemctl restart app"
+  environment:
+    name: staging
+  only:
+    - main
+
+include:
+  - project: "acme/ci-templates"
+    file: "/docker.yml"
+  - template: "Security/SAST.gitlab-ci.yml"
+stages:
+  - test
+  - security
+  - release
+test:
+  stage: test
+  script:
+    - go test ./...
+release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli
+  rules:
+    - if: $CI_COMMIT_TAG
+  script:
+    - echo "Releasing ${CI_COMMIT_TAG}"
+  release:
+    tag_name: $CI_COMMIT_TAG
+    description: "Release ${CI_COMMIT_TAG}"
+
+default:
+  image: node:20
+  before_script:
+    - npm ci
+cache:
+  key: "$CI_COMMIT_REF_SLUG"
+  paths:
+    - node_modules/
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG
+pages:
+  script:
+    - npm run build
+    - mv dist public
+  artifacts:
+    paths:
+      - public
+  only:
+    - main
+
+stages:
+  - review
+  - cleanup
+review_app:
+  stage: review
+  image: node:20
+  script:
+    - echo "Deploying review app for MR ${CI_MERGE_REQUEST_IID}"
+    - curl -X POST https://platform.example.com/deploy         -H "Authorization: Bearer ${REVIEW_TOKEN}"         -d "ref=${CI_COMMIT_REF_SLUG}"
+  environment:
+    name: review/${CI_COMMIT_REF_SLUG}
+    url: https://${CI_COMMIT_REF_SLUG}.review.example.com
+    on_stop: stop_review_app
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+stop_review_app:
+  stage: cleanup
+  script:
+    - curl -X DELETE https://platform.example.com/deploy         -H "Authorization: Bearer ${REVIEW_TOKEN}"         -d "ref=${CI_COMMIT_REF_SLUG}"
+  environment:
+    name: review/${CI_COMMIT_REF_SLUG}
+    action: stop
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+      when: manual
+
+stages:
+  - release
+semantic-release:
+  stage: release
+  image: node:20
+  script:
+    - npm ci
+    - npx semantic-release
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"

@@ -1,0 +1,252 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 30s
+scrape_configs:
+  - job_name: node
+    static_configs:
+      - targets: ["localhost:9100"]
+  - job_name: api
+    metrics_path: /metrics
+    scheme: http
+    static_configs:
+      - targets: ["api.internal:8080"]
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: "(.*):.*"
+        target_label: instance
+
+groups:
+  - name: host_alerts
+    rules:
+      - alert: HighCPULoad
+        expr: avg(rate(node_cpu_seconds_total{mode="user"}[5m])) by (instance) > 0.85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU load above 85% on {{ $labels.instance }}"
+      - alert: DiskAlmostFull
+        expr: node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"} < 0.1
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Less than 10% disk space left on {{ $labels.instance }}"
+
+groups:
+  - name: service_alerts
+    rules:
+      - alert: ApiErrorRateHigh
+        expr: sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: page
+        annotations:
+          summary: "API 5xx rate above 5%"
+          runbook: https://runbooks.example.com/api-error-rate
+      - alert: QueueBacklog
+        expr: rabbitmq_queue_messages_ready > 5000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "RabbitMQ queue backlog above 5000 messages"
+
+groups:
+  - name: recording
+    rules:
+      - record: job:http_request_duration_seconds:histogram_quantile
+        expr: histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, job))
+      - record: instance:node_cpu_usage:rate5m
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+      - record: job:http_errors:ratio5m
+        expr: sum by (job) (rate(http_requests_total{status=~"5.."}[5m])) / sum by (job) (rate(http_requests_total[5m]))
+
+auth_enabled: false
+server:
+  http_listen_port: 3100
+common:
+  path_prefix: /loki
+  storage:
+    filesystem:
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
+  replication_factor: 1
+  ring:
+    instance_addr: 127.0.0.1
+    kvstore:
+      store: inmemory
+schema_config:
+  configs:
+    - from: 2024-01-01
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+route:
+  group_by: ["alertname"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  receiver: team-email
+  routes:
+    - match:
+        severity: page
+      receiver: oncall-pager
+receivers:
+  - name: team-email
+    email_configs:
+      - to: eng-alerts@example.com
+        from: alertmanager@example.com
+        smarthost: smtp.example.com:587
+  - name: oncall-pager
+    webhook_configs:
+      - url: https://api.pagerduty.com/v2/enqueue
+        send_resolved: true
+
+service:
+  parsers: json
+  inputs:
+    - name: tail
+      tag: app.*
+      path: /var/log/app/*.log
+  filters:
+    - name: grep
+      match: "level=error"
+  outputs:
+    - name: loki
+      match: "*"
+      host: loki
+      port: 3100
+      labels:
+        job: app-logs
+
+scrape_configs:
+  - job_name: blackbox
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - https://app.example.com
+          - https://api.example.com/healthz
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+modules:
+  tcp_connect:
+    prober: tcp
+    timeout: 5s
+    tcp:
+      query_response:
+        - expect: "^220"
+  icmp:
+    prober: icmp
+    timeout: 5s
+
+scrape_configs:
+  - job_name: kubernetes-pods
+    kubernetes_sd_configs:
+      - role: pod
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: "true"
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        target_label: __address__
+
+storage:
+  type: s3
+  config:
+    bucket: acme-metrics
+    endpoint: s3.amazonaws.com
+    region: us-east-1
+compactor:
+  retention_resolution_raw: 30d
+  retention_resolution_5m: 180d
+  retention_resolution_1h: 1y
+query:
+  stores:
+    - thanos-store:10901
+    - thanos-sidecar:10901
+
+server:
+  http_listen_port: 3200
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc: {}
+        http: {}
+storage:
+  trace:
+    backend: s3
+    s3:
+      bucket: acme-traces
+      endpoint: s3.amazonaws.com
+      region: us-east-1
+compactor:
+  compaction:
+    block_retention: 336h
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+processors:
+  batch:
+    timeout: 5s
+    send_batch_size: 1024
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 512
+exporters:
+  otlp:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlp]
+
+receivers:
+  otlp:
+    protocols:
+      grpc: {}
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: app
+          static_configs:
+            - targets: ["app:8080"]
+exporters:
+  prometheusremotewrite:
+    endpoint: http://thanos-receive:19291/api/v1/receive
+  debug:
+    verbosity: basic
+service:
+  pipelines:
+    metrics:
+      receivers: [prometheus, otlp]
+      exporters: [prometheusremotewrite]

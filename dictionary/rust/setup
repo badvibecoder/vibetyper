@@ -1,0 +1,5 @@
+# vibetyper dictionary setup — rust
+name = Rust
+ext = rs
+comment = //
+blockmode = braces

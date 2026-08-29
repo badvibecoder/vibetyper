@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>vibetyper — code typing trainer</title>
+  <meta name="description" content="A retrowave typing trainer that measures your WPM on real Python code." />
+  <link rel="icon" type="image/svg+xml" href="/assets/logo.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <!-- synthwave backdrop -->
+  <div class="backdrop" aria-hidden="true">
+    <div class="backdrop__grid"></div>
+    <div class="backdrop__sun"></div>
+    <div class="backdrop__horizon"></div>
+    <div class="backdrop__scanlines"></div>
+    <div class="backdrop__vignette"></div>
+  </div>
+
+  <div class="shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="vibetyper home">
+        <img class="brand__mark" src="/assets/logo.svg" alt="" width="46" height="46" />
+        <span class="brand__word">vibetyper</span>
+      </a>
+
+      <nav class="nav" aria-label="views">
+        <button class="nav__btn is-active" data-view="test">practice</button>
+        <button class="nav__btn" data-view="leaderboard">leaderboard</button>
+      </nav>
+
+      <div class="controls">
+        <label class="field">
+          <span class="field__label">language</span>
+          <select id="lang-select" class="select" aria-label="programming language"></select>
+        </label>
+
+        <div class="time-select" role="group" aria-label="test duration">
+          <button class="time-select__btn" data-time="15">15s</button>
+          <button class="time-select__btn" data-time="30">30s</button>
+          <button class="time-select__btn is-active" data-time="60">60s</button>
+          <button class="time-select__btn" data-time="120">120s</button>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <!-- practice view -->
+      <section class="view is-active" id="view-test">
+        <div class="stats">
+          <div class="stat">
+            <span class="stat__value" id="stat-wpm">0</span>
+            <span class="stat__label">wpm</span>
+          </div>
+          <div class="stat">
+            <span class="stat__value" id="stat-cpm">0</span>
+            <span class="stat__label">cpm</span>
+          </div>
+          <div class="stat">
+            <span class="stat__value" id="stat-lpm">0.0</span>
+            <span class="stat__label">lpm</span>
+          </div>
+          <div class="stat">
+            <span class="stat__value" id="stat-acc">100%</span>
+            <span class="stat__label">accuracy</span>
+          </div>
+          <div class="stat stat--timer">
+            <span class="stat__value" id="stat-time">60</span>
+            <span class="stat__label">seconds</span>
+          </div>
+        </div>
+
+        <div class="code-frame">
+          <div class="code-frame__bar">
+            <span class="dot dot--pink"></span>
+            <span class="dot dot--orange"></span>
+            <span class="dot dot--cyan"></span>
+            <span class="code-frame__title" id="code-title">python</span>
+          </div>
+          <div class="code-area" id="code-area" tabindex="0" aria-label="typing area"></div>
+        </div>
+
+        <div class="hint" id="hint">
+          <kbd>start typing</kbd> to begin — <kbd>Tab</kbd>/<kbd>space</kbd> indent · <kbd>Ctrl</kbd>+<kbd>R</kbd> restart
+        </div>
+        <button class="btn" id="restart-btn">↻ restart test</button>
+      </section>
+
+      <!-- leaderboard view -->
+      <section class="view" id="view-leaderboard">
+        <div class="panel">
+          <div class="panel__head">
+            <h2 class="panel__title">leaderboard</h2>
+            <span class="panel__meta" id="lb-total"></span>
+          </div>
+          <div class="table-wrap" id="lb-scroll">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>player</th>
+                  <th>language</th>
+                  <th class="num">wpm</th>
+                  <th class="num">cpm</th>
+                  <th class="num">lpm</th>
+                  <th class="num">accuracy</th>
+                  <th>date</th>
+                </tr>
+              </thead>
+              <tbody id="lb-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>vibetyper · train your fingers on real code</span>
+      <span class="footer__keys"><kbd>Ctrl</kbd>+<kbd>R</kbd> restart · <kbd>Esc</kbd> abort</span>
+    </footer>
+  </div>
+
+  <!-- results modal -->
+  <div class="modal is-hidden" id="results-modal" role="dialog" aria-modal="true">
+    <div class="modal__backdrop"></div>
+    <div class="modal__card">
+      <h2 class="modal__title">test complete</h2>
+      <div class="results">
+        <div class="results__metric">
+          <span class="results__value" id="res-wpm">0</span>
+          <span class="results__label">wpm</span>
+        </div>
+        <div class="results__metric">
+          <span class="results__value" id="res-cpm">0</span>
+          <span class="results__label">cpm</span>
+        </div>
+        <div class="results__metric">
+          <span class="results__value" id="res-lpm">0.0</span>
+          <span class="results__label">lpm</span>
+        </div>
+        <div class="results__metric">
+          <span class="results__value" id="res-acc">100%</span>
+          <span class="results__label">accuracy</span>
+        </div>
+      </div>
+      <div class="save-row">
+        <input class="input" id="name-input" maxlength="24" placeholder="your name" autocomplete="off" />
+        <button class="btn btn--primary" id="save-btn">save to leaderboard</button>
+      </div>
+      <div class="save-status" id="save-status"></div>
+      <button class="btn btn--ghost" id="again-btn">↻ try again</button>
+    </div>
+  </div>
+
+  <!-- music player -->
+  <div class="music-player is-hidden" id="music-player">
+    <div class="music-player__eq" id="music-eq" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+    <span class="music-player__title" id="music-title">—</span>
+    <div class="music-player__controls">
+      <button class="music-btn" id="music-prev" title="Previous track" aria-label="Previous track">⏮</button>
+      <button class="music-btn music-btn--play" id="music-toggle" title="Play / pause" aria-label="Play or pause">▶</button>
+      <button class="music-btn" id="music-next" title="Next track" aria-label="Next track">⏭</button>
+      <input class="music-volume" id="music-volume" type="range" min="0" max="1" step="0.01" value="0.75" title="Volume" aria-label="Volume" />
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

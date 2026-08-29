@@ -1,0 +1,5 @@
+# vibetyper dictionary setup — odin
+name = Odin
+ext = odin
+comment = //
+blockmode = braces

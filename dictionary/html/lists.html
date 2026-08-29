@@ -1,0 +1,207 @@
+<section class="todo-list" aria-label="Today's tasks">
+  <h2>Today</h2>
+  <ul>
+    <li><label><input type="checkbox" checked> Review PR #482</label></li>
+    <li><label><input type="checkbox"> Write Q3 roadmap draft</label></li>
+    <li><label><input type="checkbox"> 1:1 with onboarding mentee</label></li>
+    <li><label><input type="checkbox"> Update incident runbook</label></li>
+  </ul>
+</section>
+
+<section class="playlist" aria-label="Playlist: Focus Flow">
+  <h2>Focus Flow</h2>
+  <ol class="track-list">
+    <li>Morning Static — Amber Waves <span class="track-time">3:42</span></li>
+    <li>Slow Burn — The Copper Keys <span class="track-time">4:10</span></li>
+    <li>Glass Harbor — June & the Orchard <span class="track-time">3:55</span></li>
+    <li>Paper Planes — Nadia Voss <span class="track-time">2:58</span></li>
+  </ol>
+</section>
+
+<section class="order-summary" aria-label="Order summary">
+  <h2>Order summary</h2>
+  <ul class="order-lines">
+    <li><span>2 × Aurora Headphones</span><span>$378.00</span></li>
+    <li><span>1 × Travel case</span><span>$24.00</span></li>
+    <li><span>Shipping</span><span>Free</span></li>
+  </ul>
+  <p class="order-total">Total: <strong>$402.00</strong></p>
+  <a class="btn btn-primary" href="/checkout">Checkout</a>
+</section>
+
+<aside class="sidebar" aria-label="Related links">
+  <h2>Related articles</h2>
+  <ul>
+    <li><a href="/blog/query-planning">Reading PostgreSQL query plans</a></li>
+    <li><a href="/blog/vacuum-tips">Autovacuum settings that work</a></li>
+    <li><a href="/blog/index-strategies">Index strategies for high write loads</a></li>
+  </ul>
+</aside>
+
+<section class="thread" aria-label="Comments">
+  <h2 class="visually-hidden">Discussion</h2>
+  <article class="comment">
+    <footer>
+      <img src="/img/avatar-nadia.jpg" alt="" width="40" height="40">
+      <span>Nadia Voss</span>
+      <time datetime="2025-02-21T09:12:00">Feb 21, 09:12</time>
+    </footer>
+    <p>Great write-up — the partitioning section saved us a weekend.</p>
+  </article>
+  <article class="comment">
+    <footer>
+      <img src="/img/avatar-tomas.jpg" alt="" width="40" height="40">
+      <span>Tomás Rivera</span>
+      <time datetime="2025-02-21T10:04:00">Feb 21, 10:04</time>
+    </footer>
+    <p>One note: pg_partman handles the maintenance automatically if you need it.</p>
+  </article>
+  <form class="comment-form" action="/posts/42/comments" method="post">
+    <label class="visually-hidden" for="comment-text">Add a comment</label>
+    <textarea id="comment-text" name="body" rows="3" placeholder="Join the discussion"></textarea>
+    <button type="submit" class="btn">Post comment</button>
+  </form>
+</section>
+
+<div class="notifications" role="region" aria-label="Notifications">
+  <h2 class="visually-hidden">Notifications</h2>
+  <ul>
+    <li><a href="/deploys/90012">Deploy of web@v2.4.0 succeeded</a></li>
+    <li><a href="/alerts/77">CPU alert cleared for api-prod-2</a></li>
+    <li><a href="/prs/512">PR #512 is ready for review</a></li>
+  </ul>
+</div>
+
+<div class="tag-cloud" aria-label="Topics">
+  <h2>Browse by topic</h2>
+  <p>
+    <a class="tag" href="/t/kubernetes">Kubernetes</a>
+    <a class="tag" href="/t/postgres">PostgreSQL</a>
+    <a class="tag" href="/t/rust">Rust</a>
+    <a class="tag" href="/t/typescript">TypeScript</a>
+    <a class="tag" href="/t/observability">Observability</a>
+    <a class="tag" href="/t/ci">CI/CD</a>
+  </p>
+</div>
+
+<nav class="side-menu" aria-label="Account">
+  <h2>Account</h2>
+  <ul>
+    <li><a href="/account/profile" aria-current="page">Profile</a></li>
+    <li><a href="/account/security">Security</a></li>
+    <li><a href="/account/billing">Billing</a></li>
+    <li><a href="/account/teams">Teams</a></li>
+    <li><a href="/account/api-keys">API keys</a></li>
+  </ul>
+</nav>
+
+<aside class="related">
+  <h2>More reading</h2>
+  <ul>
+    <li><a href="/blog/vacuum-tips">Autovacuum settings that work</a></li>
+    <li><a href="/blog/index-strategies">Index strategies for high write loads</a></li>
+    <li><a href="/blog/connection-pools">Postgres connection pooling done right</a></li>
+    <li><a href="/blog/pitr-drills">Restore drills: practice your point-in-time recovery</a></li>
+  </ul>
+</aside>
+
+<section class="checklist" aria-label="Launch checklist">
+  <h2>Launch checklist</h2>
+  <ul>
+    <li><label><input type="checkbox" checked> SSL certificate installed</label></li>
+    <li><label><input type="checkbox" checked> Custom domain verified</label></li>
+    <li><label><input type="checkbox"> Error monitoring configured</label></li>
+    <li><label><input type="checkbox"> Backup schedule enabled</label></li>
+    <li><label><input type="checkbox"> Status page updated</label></li>
+  </ul>
+</section>
+
+<ul class="changelog-list" aria-label="Changelog">
+  <li>
+    <time datetime="2025-03-10">Mar 10</time>
+    <p><strong>v2.4.0</strong> — realtime sync, new dashboard</p>
+  </li>
+  <li>
+    <time datetime="2025-02-24">Feb 24</time>
+    <p><strong>v2.3.1</strong> — export fixes, faster cold starts</p>
+  </li>
+  <li>
+    <time datetime="2025-02-10">Feb 10</time>
+    <p><strong>v2.3.0</strong> — CSV import, audit log</p>
+  </li>
+</ul>
+
+<ul class="menu-list">
+  <li><span class="dish">Breakfast burrito</span><span class="price">$9.50</span></li>
+  <li><span class="dish">Avocado toast</span><span class="price">$7.00</span></li>
+  <li><span class="dish">Seasonal fruit bowl</span><span class="price">$6.50</span></li>
+  <li><span class="dish">Oat latte</span><span class="price">$4.75</span></li>
+</ul>
+
+<section class="benefits" aria-label="Plan benefits">
+  <h2>Why teams switch</h2>
+  <ul class="benefit-list">
+    <li>Deploy in under 60 seconds</li>
+    <li>Zero-config previews for every PR</li>
+    <li>One-click rollbacks</li>
+    <li>Unlimited team members on every plan</li>
+    <li>Free SSL and custom domains</li>
+  </ul>
+</section>
+
+<div class="newsletter-email" role="article">
+  <header>
+    <img src="/img/logo-email.png" alt="Acme" width="120" height="32">
+    <h1>Your weekly digest</h1>
+  </header>
+  <p>Issue #14 — March 14, 2025</p>
+  <h2>In this issue</h2>
+  <ol>
+    <li>Realtime sync is now GA</li>
+    <li>New pricing for teams</li>
+    <li>Community highlight of the week</li>
+  </ol>
+  <a class="btn btn-primary" href="/newsletter/14">Read on the web</a>
+  <footer><p>You're receiving this because you subscribed. <a href="/unsubscribe">Unsubscribe</a></p></footer>
+</div>
+
+<ul class="resource-list">
+  <li><a href="/resources/template-architecture.pdf">Architecture template (PDF)</a></li>
+  <li><a href="/resources/checklist-security.pdf">Security launch checklist</a></li>
+  <li><a href="/resources/guide-migration">Migration guide</a></li>
+  <li><a href="/resources/videos/getting-started">Getting started video</a></li>
+</ul>
+
+<ol class="top-ten">
+  <li><span class="rank">1</span> Aurora Headphones</li>
+  <li><span class="rank">2</span> Halo Desk Lamp</li>
+  <li><span class="rank">3</span> Travel Case S</li>
+  <li><span class="rank">4</span> Cable Kit</li>
+  <li><span class="rank">5</span> Stand for Aurora</li>
+</ol>
+
+<div class="reading-list" aria-label="Reading list">
+  <h2>Saved for later</h2>
+  <ul>
+    <li><a href="/blog/connection-pools">Postgres connection pooling done right</a></li>
+    <li><a href="/blog/incident-reviews">Writing incident reviews people actually read</a></li>
+    <li><a href="/blog/tracing">Distributed tracing without the headache</a></li>
+  </ul>
+</div>
+
+<div class="requirements" aria-label="System requirements">
+  <h2>Requirements</h2>
+  <ul>
+    <li>Node.js 20 or newer</li>
+    <li>1 GB of free disk space</li>
+    <li>macOS 13+, Windows 11, or a modern Linux distro</li>
+    <li>An account at acme.io (free tier works)</li>
+  </ul>
+</div>
+
+<ul class="perks">
+  <li><strong>4-day work week</strong> — Mondays off</li>
+  <li><strong>Home office stipend</strong> — $1,000 / year</li>
+  <li><strong>Learning budget</strong> — courses & conferences</li>
+  <li><strong>Health cover</strong> — for you and your family</li>
+</ul>

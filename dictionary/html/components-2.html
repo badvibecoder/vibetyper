@@ -1,0 +1,232 @@
+<div class="cookie-banner" role="region" aria-label="Cookie consent">
+  <p>We use cookies to improve your experience and measure usage.</p>
+  <div class="cookie-actions">
+    <button type="button" class="btn btn-primary">Accept all</button>
+    <button type="button" class="btn">Necessary only</button>
+    <a href="/privacy">Learn more</a>
+  </div>
+</div>
+
+<div class="skeleton" aria-label="Loading content">
+  <div class="skeleton-line w-60"></div>
+  <div class="skeleton-line w-90"></div>
+  <div class="skeleton-line w-75"></div>
+  <p class="visually-hidden">Content is loading...</p>
+</div>
+
+<section class="auth-steps" aria-label="Setup progress">
+  <h2>Secure your account</h2>
+  <ol class="steps">
+    <li class="done"><a href="/security/password">Set a strong password</a></li>
+    <li class="active"><a href="/security/2fa" aria-current="step">Enable two-factor auth</a></li>
+    <li>Add a recovery email</li>
+  </ol>
+</section>
+
+<div class="version-banner">
+  <p><strong>v2.4.0 is available.</strong> Includes realtime sync and the new
+  dashboard. <a href="/changelog/2-4-0">What's new</a></p>
+  <button type="button" class="btn">Update now</button>
+</div>
+
+<section class="widget" aria-label="Deploy history">
+  <h2>Recent deploys</h2>
+  <ul class="widget-list">
+    <li><a href="/deploys/901">web@v2.4.0</a> <time datetime="2025-03-12T09:41:00">09:41</time></li>
+    <li><a href="/deploys/900">api@v1.4.0</a> <time datetime="2025-03-12T09:12:00">09:12</time></li>
+    <li><a href="/deploys/899">worker@v2.1.0</a> <time datetime="2025-03-12T08:55:00">08:55</time></li>
+  </ul>
+</section>
+
+<section class="widget" aria-label="Spending summary">
+  <h2>Spending this month</h2>
+  <p class="stat-value">$1,284.50</p>
+  <p class="stat-trend up">+8% vs last month</p>
+  <a class="card-link" href="/billing/usage">View usage breakdown</a>
+</section>
+
+<section class="widget" aria-label="On-call rotation">
+  <h2>This week's on-call</h2>
+  <p><strong>Primary:</strong> Elena Petrova</p>
+  <p><strong>Secondary:</strong> Tomás Rivera</p>
+  <p class="card-meta">Rotates every Monday at 09:00 UTC</p>
+</section>
+
+<section class="widget" aria-label="Open incidents">
+  <h2>Open incidents</h2>
+  <ul>
+    <li><span class="badge badge-amber">Degraded</span> Log streaming in eu-west-1</li>
+    <li><span class="badge badge-amber">Investigating</span> Elevated 5xx on edge</li>
+  </ul>
+  <a class="card-link" href="/status">Status page</a>
+</section>
+
+<section class="widget" aria-label="Upcoming releases">
+  <h2>Upcoming releases</h2>
+  <ul>
+    <li><strong>v2.5.0</strong> — offline mode · Mar 28</li>
+    <li><strong>v2.6.0</strong> — audit export · Apr 15</li>
+  </ul>
+</section>
+
+<nav class="pagination pagination-compact" aria-label="Pagination">
+  <a href="/docs/part-1" rel="prev">← Part 1</a>
+  <span>Part 2 of 4</span>
+  <a href="/docs/part-3" rel="next">Part 3 →</a>
+</nav>
+
+<div class="inline-code-demo">
+  <p>Install with npm: <code>npm install @acme/sdk@latest</code></p>
+  <p>Or with pnpm: <code>pnpm add @acme/sdk</code></p>
+  <pre><code>import { client } from '@acme/sdk';
+const res = await client.orders.list({ limit: 10 });</code></pre>
+</div>
+
+<div class="legend" aria-label="Chart legend">
+  <h2 class="visually-hidden">Chart legend</h2>
+  <ul>
+    <li><span class="swatch swatch-blue"></span> Requests</li>
+    <li><span class="swatch swatch-green"></span> Cache hits</li>
+    <li><span class="swatch swatch-red"></span> Errors</li>
+  </ul>
+</div>
+
+<div class="notice-bar" role="note">
+  <p>We will be performing maintenance on <time datetime="2025-04-12T02:00:00">April 12, 02:00 UTC</time>.
+  Expected duration: 30 minutes.</p>
+</div>
+
+<div class="shortcuts" aria-label="Keyboard shortcuts">
+  <h2>Keyboard shortcuts</h2>
+  <ul class="shortcut-list">
+    <li><kbd>g</kbd> <kbd>d</kbd> Go to dashboard</li>
+    <li><kbd>c</kbd> New deploy</li>
+    <li><kbd>/</kbd> Focus search</li>
+    <li><kbd>?</kbd> Show this menu</li>
+  </ul>
+</div>
+
+<div class="countdown" aria-label="Event countdown">
+  <h2>Launch in</h2>
+  <p class="countdown-grid">
+    <span><strong>12</strong> days</span>
+    <span><strong>08</strong> hours</span>
+    <span><strong>44</strong> min</span>
+  </p>
+</div>
+
+<nav class="toc" aria-label="Table of contents">
+  <h2>On this page</h2>
+  <ol>
+    <li><a href="#install">Installation</a></li>
+    <li><a href="#quickstart">Quickstart</a></li>
+    <li><a href="#config">Configuration</a></li>
+    <li><a href="#deploy">Deploying</a></li>
+    <li><a href="#troubleshoot">Troubleshooting</a></li>
+  </ol>
+</nav>
+
+<div class="code-block">
+  <div class="code-head">
+    <span>main.ts</span>
+    <button type="button" class="btn btn-small">Copy</button>
+  </div>
+  <pre><code>export function greet(name: string): string {
+  return `Hello, ${name}!`;
+}</code></pre>
+</div>
+
+<div class="toggle-group" aria-label="View mode">
+  <button type="button" class="toggle active" aria-pressed="true">List</button>
+  <button type="button" class="toggle" aria-pressed="false">Grid</button>
+  <button type="button" class="toggle" aria-pressed="false">Calendar</button>
+</div>
+
+<div class="swatches" aria-label="Brand colors">
+  <h2 class="visually-hidden">Brand colors</h2>
+  <button type="button" class="swatch" style="background:#2563eb" aria-label="Blue #2563eb"></button>
+  <button type="button" class="swatch" style="background:#16a34a" aria-label="Green #16a34a"></button>
+  <button type="button" class="swatch" style="background:#f59e0b" aria-label="Amber #f59e0b"></button>
+  <button type="button" class="swatch" style="background:#dc2626" aria-label="Red #dc2626"></button>
+</div>
+
+<dl class="definitions">
+  <dt>Idempotent</dt>
+  <dd>Safe to run multiple times with the same result.</dd>
+  <dt>Backpressure</dt>
+  <dd>Slowing down a producer when consumers can't keep up.</dd>
+  <dt>Cold start</dt>
+  <dd>Latency incurred when a function runs for the first time.</dd>
+</dl>
+
+<div class="payment-methods" aria-label="Accepted payment methods">
+  <h2 class="visually-hidden">Payment methods</h2>
+  <ul>
+    <li>Visa</li>
+    <li>Mastercard</li>
+    <li>American Express</li>
+    <li>PayPal</li>
+    <li>Apple Pay</li>
+    <li>Bank transfer</li>
+  </ul>
+</div>
+
+<div class="announcement" role="status">
+  <p>📢 <strong>Acme v2.4 is here.</strong> Realtime sync is now available to
+  all workspaces. <a href="/blog/v2-4">Read the announcement →</a></p>
+</div>
+
+<div class="progress-tracker" aria-label="Course progress">
+  <h2>Course progress</h2>
+  <p>Section 4 of 8</p>
+  <progress value="50" max="100" aria-label="50% complete">50%</progress>
+  <p class="card-meta">5 of 10 lessons completed</p>
+</div>
+
+<div class="error-boundary" role="alert">
+  <h2>Something went wrong</h2>
+  <p>We couldn't load this dashboard. Try again, or
+  <a href="/status">check our status page</a>.</p>
+  <button type="button" class="btn">Retry</button>
+</div>
+
+<div class="empty-inbox" aria-label="Inbox">
+  <h2>Inbox zero 🎉</h2>
+  <p>You're all caught up. New messages will appear here.</p>
+  <a class="card-link" href="/compose">Compose a message</a>
+</div>
+
+<div class="loading-bar" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" aria-label="Uploading">
+  <span class="bar" style="width:60%"></span>
+  <p>Uploading 60%</p>
+</div>
+
+<div class="badge-grid" aria-label="Badges">
+  <span class="badge badge-green">Operational</span>
+  <span class="badge badge-blue">New</span>
+  <span class="badge badge-gray">Beta</span>
+  <span class="badge badge-purple">Pro</span>
+</div>
+
+<div class="autocomplete" role="combobox">
+  <label for="repo-search">Find a repository</label>
+  <input type="text" id="repo-search" placeholder="e.g. typerouter" aria-autocomplete="list">
+  <ul class="autocomplete-list" role="listbox">
+    <li role="option">acme/typerouter</li>
+    <li role="option">acme/streamline</li>
+    <li role="option">acme/docs</li>
+  </ul>
+</div>
+
+<div class="theme-switcher" aria-label="Theme">
+  <span>Theme:</span>
+  <button type="button" aria-pressed="false">Light</button>
+  <button type="button" aria-pressed="true">Dark</button>
+  <button type="button" aria-pressed="false">System</button>
+</div>
+
+<div class="system-status" role="status">
+  <h2 class="visually-hidden">System status</h2>
+  <p><span class="status-dot ok" aria-hidden="true"></span> All systems operational</p>
+  <p class="card-meta">Last checked 30 seconds ago</p>
+</div>

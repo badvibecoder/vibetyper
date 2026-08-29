@@ -1,0 +1,5 @@
+# vibetyper dictionary setup — html
+name = HTML
+ext = html
+comment = <!-- -->
+blockmode = blank

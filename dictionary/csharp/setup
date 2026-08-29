@@ -1,0 +1,5 @@
+# vibetyper dictionary setup — c#
+name = C#
+ext = cs
+comment = //
+blockmode = braces

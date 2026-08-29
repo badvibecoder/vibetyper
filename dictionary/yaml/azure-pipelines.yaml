@@ -1,0 +1,150 @@
+trigger:
+  branches:
+    include:
+      - main
+      - release/*
+pool:
+  vmImage: ubuntu-latest
+variables:
+  nodeVersion: "20"
+steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: $(nodeVersion)
+  - script: npm ci
+  - script: npm test
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFiles: "**/junit.xml"
+      testRunTitle: "Node tests"
+
+trigger: none
+pr:
+  branches:
+    include:
+      - main
+pool:
+  vmImage: ubuntu-latest
+steps:
+  - checkout: self
+    fetchDepth: 0
+  - script: |
+      docker build -t app:pr .
+      docker run --rm app:pr npm run smoke
+  - task: PublishPipelineArtifact@1
+    inputs:
+      targetPath: .
+      artifact: pr-build
+      publishLocation: pipeline
+
+trigger:
+  branches:
+    include:
+      - main
+pool:
+  vmImage: ubuntu-latest
+variables:
+  - group: production-secrets
+stages:
+  - stage: Build
+    jobs:
+      - job: build
+        steps:
+          - script: npm ci
+          - script: npm run build
+          - task: PublishBuildArtifacts@1
+            inputs:
+              PathtoPublish: dist
+              ArtifactName: web
+  - stage: Deploy
+    dependsOn: Build
+    jobs:
+      - deployment: prod
+        environment: production
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - script: echo "deploying dist to production"
+
+trigger:
+  branches:
+    include:
+      - main
+pool:
+  vmImage: windows-latest
+steps:
+  - task: UseDotNet@2
+    inputs:
+      version: "8.x"
+  - script: dotnet restore
+  - script: dotnet build --configuration Release
+  - script: dotnet test --configuration Release --logger trx
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFormat: VSTest
+      testResultsFiles: "**/*.trx"
+
+kind: pipeline
+type: docker
+name: default
+steps:
+  - name: install
+    image: node:20
+    commands:
+      - npm ci
+  - name: test
+    image: node:20
+    commands:
+      - npm test
+  - name: publish
+    image: plugins/docker
+    settings:
+      repo: registry.example.com/app
+      tags: latest
+    when:
+      branch:
+        - main
+trigger:
+  event:
+    - push
+    - tag
+
+trigger:
+  tags:
+    include:
+      - v*
+pool:
+  vmImage: ubuntu-latest
+steps:
+  - task: UseDotNet@2
+    inputs:
+      version: "8.x"
+  - script: dotnet publish -c Release -o out
+  - task: AzureCLI@2
+    inputs:
+      azureSubscription: acme-prod
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: az webapp deploy --name acme-api --src-path out.zip
+
+kind: pipeline
+type: docker
+name: build
+steps:
+  - name: test
+    image: golang:1.22
+    commands:
+      - go test ./...
+  - name: publish
+    image: plugins/gcr
+    settings:
+      repo: acme-project/api
+      registry: gcr.io
+      tags:
+        - latest
+        - "${DRONE_COMMIT_SHA:0:8}"
+    when:
+      branch: main
+trigger:
+  event: push

@@ -1,0 +1,5 @@
+# vibetyper dictionary setup — yaml
+name = YAML
+ext = yaml
+comment = #
+blockmode = blank

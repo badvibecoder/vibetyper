@@ -1,0 +1,147 @@
+<form class="unsubscribe-form" action="/unsubscribe" method="post">
+  <h2>Unsubscribe</h2>
+  <p>We're sorry to see you go. Tell us why (optional):</p>
+  <label><input type="checkbox" name="reason" value="too-many"> Too many emails</label>
+  <label><input type="checkbox" name="reason" value="irrelevant"> Content isn't relevant</label>
+  <label><input type="checkbox" name="reason" value="other"> Other</label>
+  <button type="submit" class="btn btn-primary">Unsubscribe me</button>
+  <p class="hint">You can also <a href="/email-preferences">update your preferences</a> instead.</p>
+</form>
+
+<form class="referral-form" action="/refer" method="post">
+  <h2>Invite a friend, earn credit</h2>
+  <label for="ref-name">Their name</label>
+  <input type="text" id="ref-name" name="name" required>
+  <label for="ref-email">Their email</label>
+  <input type="email" id="ref-email" name="email" required>
+  <p class="hint">You both get $10 in credits when they make their first purchase.</p>
+  <button type="submit" class="btn btn-primary">Send invitation</button>
+</form>
+
+<form class="preorder-form" action="/preorder" method="post">
+  <h2>Pre-order the Series 6</h2>
+  <label for="po-email">Email</label>
+  <input type="email" id="po-email" name="email" required>
+  <label for="po-model">Model</label>
+  <select id="po-model" name="model">
+    <option value="41-gps">41 mm, GPS — $399</option>
+    <option value="45-gps">45 mm, GPS — $429</option>
+    <option value="45-cellular">45 mm, GPS + Cellular — $499</option>
+  </select>
+  <label for="po-band">Band</label>
+  <select id="po-band" name="band">
+    <option>Sport loop</option>
+    <option>Solo loop</option>
+    <option>Braided solo loop</option>
+  </select>
+  <button type="submit" class="btn btn-primary">Pre-order</button>
+</form>
+
+<form class="rsvp-form" action="/rsvp" method="post">
+  <h2>RSVP — Spring Community Meetup</h2>
+  <p class="card-sub">April 24, 18:00 · Riverside Hall</p>
+  <fieldset>
+    <legend>Will you attend?</legend>
+    <label><input type="radio" name="attend" value="yes" checked> Yes, I'll be there</label>
+    <label><input type="radio" name="attend" value="maybe"> Maybe</label>
+    <label><input type="radio" name="attend" value="no"> No</label>
+  </fieldset>
+  <label for="rsvp-guests">Plus-ones</label>
+  <input type="number" id="rsvp-guests" name="guests" min="0" max="3" value="0">
+  <label for="rsvp-note">Dietary notes</label>
+  <input type="text" id="rsvp-note" name="note" placeholder="e.g. vegetarian">
+  <button type="submit" class="btn btn-primary">Send RSVP</button>
+</form>
+
+<form class="calculator" action="/shipping" method="get">
+  <h2>Estimate shipping</h2>
+  <label for="calc-zip">Destination ZIP</label>
+  <input type="text" id="calc-zip" name="zip" pattern="[0-9]{5}" required>
+  <label for="calc-weight">Weight (kg)</label>
+  <input type="number" id="calc-weight" name="weight" min="0.1" step="0.1" value="1.0" required>
+  <label for="calc-speed">Speed</label>
+  <select id="calc-speed" name="speed">
+    <option value="standard">Standard — 5–7 days</option>
+    <option value="express">Express — 2–3 days</option>
+    <option value="overnight">Overnight</option>
+  </select>
+  <button type="submit" class="btn btn-primary">Estimate</button>
+</form>
+
+<form class="poll-form" action="/poll" method="post">
+  <h2>Which feature next?</h2>
+  <fieldset>
+    <legend>Vote for one</legend>
+    <label><input type="radio" name="vote" value="offline" checked> Offline mode</label>
+    <label><input type="radio" name="vote" value="reports"> Scheduled reports</label>
+    <label><input type="radio" name="vote" value="sso"> More SSO providers</label>
+    <label><input type="radio" name="vote" value="api"> Public REST API</label>
+  </fieldset>
+  <button type="submit" class="btn btn-primary">Vote</button>
+</form>
+
+<form class="quiz-form" action="/quiz" method="post">
+  <h2>Quick check: HTML semantics</h2>
+  <fieldset>
+    <legend>Which element marks the main content?</legend>
+    <label><input type="radio" name="q1" value="main" checked> &lt;main&gt;</label>
+    <label><input type="radio" name="q1" value="content"> &lt;content&gt;</label>
+    <label><input type="radio" name="q1" value="body"> &lt;body&gt;</label>
+  </fieldset>
+  <fieldset>
+    <legend>Which element defines a caption for a figure?</legend>
+    <label><input type="radio" name="q2" value="caption"> &lt;caption&gt;</label>
+    <label><input type="radio" name="q2" value="figcaption" checked> &lt;figcaption&gt;</label>
+    <label><input type="radio" name="q2" value="legend"> &lt;legend&gt;</label>
+  </fieldset>
+  <button type="submit" class="btn btn-primary">Check answers</button>
+</form>
+
+<form class="appointment-form" action="/appointments" method="post">
+  <h2>Request an appointment</h2>
+  <label for="appt-name">Your name</label>
+  <input type="text" id="appt-name" name="name" required>
+  <label for="appt-type">Type</label>
+  <select id="appt-type" name="type">
+    <option value="consult">Consultation</option>
+    <option value="followup">Follow-up</option>
+    <option value="procedure">Procedure</option>
+  </select>
+  <label for="appt-notes">Notes</label>
+  <textarea id="appt-notes" name="notes" rows="3"></textarea>
+  <button type="submit" class="btn btn-primary">Request</button>
+</form>
+
+<form class="coupon-form" action="/coupon" method="post">
+  <h2>Have a coupon?</h2>
+  <label class="visually-hidden" for="coupon">Coupon code</label>
+  <input type="text" id="coupon" name="code" placeholder="WELCOME10">
+  <button type="submit" class="btn">Apply</button>
+</form>
+
+<form class="goal-form" action="/goals" method="post">
+  <h2>Set a new goal</h2>
+  <label for="goal-name">Goal name</label>
+  <input type="text" id="goal-name" name="name" required placeholder="e.g. Save for a bike">
+  <label for="goal-amount">Target amount</label>
+  <input type="number" id="goal-amount" name="amount" min="1" step="0.01" required>
+  <label for="goal-date">Target date</label>
+  <input type="month" id="goal-date" name="due">
+  <button type="submit" class="btn btn-primary">Create goal</button>
+</form>
+
+<form class="feedback-quick" action="/feedback/quick" method="post">
+  <h2>Was this page helpful?</h2>
+  <div class="quick-actions">
+    <button type="submit" name="vote" value="yes" class="btn">Yes</button>
+    <button type="submit" name="vote" value="no" class="btn">No</button>
+  </div>
+</form>
+
+<form class="sync-form" action="/sync" method="post">
+  <h2>Sync your calendar</h2>
+  <p>Connect Google Calendar to get automatic scheduling links.</p>
+  <label for="cal-url">Or paste an iCal URL</label>
+  <input type="url" id="cal-url" name="url" placeholder="https://cal.example.com/feed.ics">
+  <button type="submit" class="btn btn-primary">Connect</button>
+</form>

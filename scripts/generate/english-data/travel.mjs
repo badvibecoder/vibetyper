@@ -1,0 +1,34 @@
+// english-data/travel.mjs
+// Travel and adventure paragraphs for the vibetyper English dictionary.
+// Each entry is one paragraph of 3-5 sentences on a single line, separated
+// by single spaces, written on one topic.
+
+export default [
+  'We booked the flights two months ahead for a better price, and the seats cost half the walk-up fare. The return flight home felt short and uneventful. Early planning usually pays for itself.',
+  'The train from Vienna to Prague takes four hours, and the countryside rolls past in a blur of fields and villages. We shared a table with travelers from three countries. The journey was as good as the destination.',
+  'She packed only a carry-on for the whole trip, rolling everything into neat bundles. The hostel had a rooftop terrace with a great view. Light packing makes every transfer easier.',
+  'We got lost in the old town and loved every minute, wandering down streets that were not on the map. The map showed a shortcut through the vineyard, so we took it. Wrong turns sometimes lead to the best stories.',
+  'The flight landed an hour late because of the storm, but the airline handled it well. The hotel breakfast buffet had fresh pastries daily. Small delays fade once the trip gets going.',
+  'He learned a few phrases in the local language before arriving, and the shopkeepers warmed to him instantly. The market sells spices, silk, and handmade pottery. A little effort goes a long way abroad.',
+  'Our hotel room overlooked a quiet canal in Amsterdam, and the bicycles passed below all day. The city is famous for its canals and bicycles. We rented one and joined the flow of traffic ourselves.',
+  'The bus to the coast leaves every half hour, so we grabbed the early one. She collected postcards from every city she visited. The stack of them now covers half her bedroom wall.',
+  'The museum pass lets you skip the long lines, which saved us an hour in the sun. We wandered the halls until closing time. The pass paid for itself by the second gallery.',
+  'The sunset from the hill was worth the climb, and the whole valley turned pink below us. We woke early to watch the sunrise over the bay the next day. The best views cost a little effort.',
+  'He lost his passport at the airport and panicked, but a kind officer found it in the lost and found. His luggage arrived on the next flight, thankfully. Travel loves to test your patience.',
+  'The street food in Bangkok is cheap and delicious, so we ate our way along the alleys. The market stalls sizzle from dawn until late. Dinner became an adventure every night.',
+  'Our guide told stories about every ruin we passed, bringing the old stones to life. The castle tour lasted almost three full hours. A good guide doubles the value of a ticket.',
+  'The ferry rocks gently on the open sea, and the gulls follow the wake for scraps. She took a photo of the tower at every angle from the deck. The horizon never looked the same twice.',
+  'The currency exchange rate changed overnight, so the same meal cost a little more the next day. The border crossing took longer than we expected. A flexible budget absorbs these surprises.',
+  'The mountain village had no cell service at all, and the silence was wonderful. We sat outside and watched the stars come out. Being unreachable felt like a holiday in itself.',
+  'Take the scenic route along the coast instead, because the highway is faster but flat. We got caught in a downpour without any umbrella, so we ducked into a cafe. That accidental stop became our favorite memory.',
+  'She wrote postcards while sipping coffee at the cafe, addressing them to friends back home. The cafe owner drew her a map of the hidden viewpoints. Small rituals make travel feel real.',
+  'A local fisherman offered to row us across the bay, so we climbed into his little boat. The water was calm and the ride was slow. He pointed out the island where the lighthouse stood.',
+  'He slept through the alarm and missed the bus, but the next one came an hour later. The delay let us wander a neighborhood we would have skipped. Plans fall apart and trips still turn out fine.',
+  'The desert tour started at four in the morning so we could watch the sun rise over the dunes. The sand was cool underfoot at that hour. By nine the heat sent everyone back to the shade.',
+  'We shared a table with travelers from three countries and swapped stories until midnight. The hostel common room smells of coffee and maps. Strangers become friends over a shared journey.',
+  'The hotel breakfast buffet had fresh pastries daily, and we lingered there every morning. The croissants disappeared within minutes of the tray arriving. A good breakfast sets the pace for the whole day.',
+  'The mountain train climbed in tight switchbacks, and the valley dropped away below the window. The conductor pointed out peaks by name. At the top the air was thin and the view endless.',
+  'We packed the wrong adapter and charged our phones at the cafe instead. The shop on the corner sold a universal one for a fair price. Every trip teaches a new packing lesson.',
+  'The old town square filled with market stalls on Saturday, selling honey, wool, and wooden toys. A street musician played under the clock tower. We bought a jar of honey to bring home.',
+  'The last train home left at midnight, and we almost missed it after one more coffee. We ran across the platform as the doors were closing. The driver waved as we caught our breath inside.',
+];

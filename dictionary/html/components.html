@@ -1,0 +1,216 @@
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <ol>
+    <li><a href="/">Home</a></li>
+    <li><a href="/docs">Documentation</a></li>
+    <li><a href="/docs/api">API</a></li>
+    <li aria-current="page">Authentication</li>
+  </ol>
+</nav>
+
+<nav class="pagination" aria-label="Pagination">
+  <a class="page-link" href="/blog?page=2" rel="prev">Previous</a>
+  <a href="/blog?page=1">1</a>
+  <a href="/blog?page=2">2</a>
+  <a href="/blog?page=3" aria-current="page">3</a>
+  <a href="/blog?page=4">4</a>
+  <a class="page-link" href="/blog?page=4" rel="next">Next</a>
+</nav>
+
+<div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <h2 id="modal-title">Delete project?</h2>
+  <p>This will permanently remove <strong>checkout-api</strong> and its
+  deployments. This action cannot be undone.</p>
+  <div class="modal-actions">
+    <button type="button" class="btn">Cancel</button>
+    <button type="button" class="btn btn-danger">Delete project</button>
+  </div>
+</div>
+
+<div class="alert alert-error" role="alert">
+  <strong>Build failed.</strong> The test suite reported 3 failures. See the
+  <a href="/builds/8812">build log</a> for details.
+</div>
+
+<div class="alert alert-warning" role="alert">
+  Your trial ends in <strong>3 days</strong>. Add a payment method to keep
+  your workspace active.
+</div>
+
+<ol class="steps" aria-label="Onboarding progress">
+  <li class="step done">Create account</li>
+  <li class="step done">Connect repository</li>
+  <li class="step active" aria-current="step">Deploy first app</li>
+  <li class="step">Invite teammates</li>
+</ol>
+
+<div class="toast" role="status" aria-live="polite">
+  <p>Changes saved successfully.</p>
+  <button type="button" aria-label="Dismiss">×</button>
+</div>
+
+<form class="search-bar" action="/search" method="get" role="search">
+  <label class="visually-hidden" for="site-search">Search</label>
+  <input type="search" id="site-search" name="q" placeholder="Search docs, guides, API...">
+  <kbd>/</kbd>
+</form>
+
+<div class="avatar-group" aria-label="3 people online">
+  <img src="/img/avatar-1.jpg" alt="Dana Kwan" width="36" height="36">
+  <img src="/img/avatar-2.jpg" alt="Mateus Rocha" width="36" height="36">
+  <img src="/img/avatar-3.jpg" alt="Anaya Patel" width="36" height="36">
+  <span class="avatar-more">+12</span>
+</div>
+
+<p class="rating" aria-label="Rated 4.5 out of 5">
+  <span aria-hidden="true">★★★★★</span>
+  <span class="rating-num">4.5</span>
+  <span class="rating-count">(218 reviews)</span>
+</p>
+
+<div class="tabs" role="tablist" aria-label="Account sections">
+  <button role="tab" aria-selected="true">Overview</button>
+  <button role="tab" aria-selected="false">Usage</button>
+  <button role="tab" aria-selected="false">Invoices</button>
+  <button role="tab" aria-selected="false">Settings</button>
+</div>
+
+<a class="skip-link" href="#main">Skip to main content</a>
+<header class="site-header">…</header>
+<main id="main">
+  <h1>Page title</h1>
+  <p>Main content starts here.</p>
+</main>
+
+<figure>
+  <img src="/img/diagram.png" alt="Architecture diagram: edge, origin, database">
+  <figcaption>Figure 1 — Request flow through the edge network.</figcaption>
+</figure>
+
+<blockquote>
+  <p>The best documentation is the kind you only need to read once.</p>
+  <footer>— <cite>Release notes, v2.0</cite></footer>
+</blockquote>
+
+<audio controls preload="metadata" aria-label="Episode 42 audio">
+  <source src="/media/ep42.mp3" type="audio/mpeg">
+  <p>Your browser does not support the audio element.
+  <a href="/media/ep42.mp3">Download the episode</a>.</p>
+</audio>
+
+<video controls poster="/img/video-poster.jpg" width="640">
+  <source src="/media/intro.webm" type="video/webm">
+  <source src="/media/intro.mp4" type="video/mp4">
+  <p>Your browser does not support embedded video.
+  <a href="/media/intro.mp4">Download the mp4</a>.</p>
+</video>
+
+<p>Storage used:
+  <meter min="0" max="100" low="70" high="90" optimum="30" value="82"
+    aria-label="82 gigabytes of 100 gigabytes used">82%</meter>
+</p>
+
+<dl class="meta-list">
+  <dt>Repository</dt>
+  <dd><a href="https://github.com/acme/typerouter">acme/typerouter</a></dd>
+  <dt>License</dt>
+  <dd>MIT</dd>
+  <dt>Latest release</dt>
+  <dd><time datetime="2025-01-30">v2.4.0</time></dd>
+</dl>
+
+<div class="card" aria-label="Invitation">
+  <h2>You're invited</h2>
+  <p>Elena invited you to join the <strong>platform</strong> workspace.</p>
+  <div class="card-actions">
+    <a class="btn btn-primary" href="/invites/accept">Accept</a>
+    <a class="btn" href="/invites/decline">Decline</a>
+  </div>
+</div>
+
+<div class="badge-row">
+  <span class="badge badge-green">Healthy</span>
+  <span class="badge badge-amber">Degraded</span>
+  <span class="badge badge-red">Down</span>
+</div>
+
+<dialog open aria-labelledby="dialog-title">
+  <h2 id="dialog-title">Update available</h2>
+  <p>A new version of the app is ready to install.</p>
+  <form method="dialog">
+    <button type="submit" class="btn btn-primary">Reload now</button>
+    <button type="submit" class="btn">Later</button>
+  </form>
+</dialog>
+
+<section class="pricing-note">
+  <h2>Compare plans</h2>
+  <p>All plans include unlimited bandwidth, automatic HTTPS and global
+  edge caching. Prices are per workspace, billed monthly.</p>
+  <ul>
+    <li>Free SSL certificates on every custom domain</li>
+    <li>Instant rollbacks with zero downtime</li>
+    <li>24/7 monitoring across 30+ regions</li>
+  </ul>
+</section>
+
+<div class="empty-state">
+  <img src="/img/empty-box.png" alt="" width="96" height="96">
+  <h2>No deployments yet</h2>
+  <p>Push a commit to your repository and the first build will appear here.</p>
+  <a class="btn btn-primary" href="/docs/first-deploy">Deploy your first app</a>
+</div>
+
+<section class="status">
+  <h2 class="visually-hidden">Service status</h2>
+  <ul class="status-list">
+    <li><span class="status-dot ok" aria-hidden="true"></span> API — Operational</li>
+    <li><span class="status-dot ok" aria-hidden="true"></span> Edge network — Operational</li>
+    <li><span class="status-dot warn" aria-hidden="true"></span> Log streaming — Degraded</li>
+  </ul>
+  <p><a href="/status/history">View status history</a></p>
+</section>
+
+<div class="command-palette" role="search">
+  <label class="visually-hidden" for="cmd-input">Search commands</label>
+  <input type="text" id="cmd-input" placeholder="Type a command or search...">
+  <ul class="command-list">
+    <li><kbd>↑</kbd><kbd>↓</kbd> to navigate</li>
+    <li><kbd>↵</kbd> to select</li>
+    <li><kbd>esc</kbd> to close</li>
+  </ul>
+</div>
+
+<div class="tooltip-demo" aria-label="Tooltip example">
+  <button type="button" aria-describedby="tooltip">Hover me</button>
+  <span id="tooltip" role="tooltip">Saves your changes automatically.</span>
+</div>
+
+<div class="spinner" role="status" aria-label="Loading">
+  <span class="spinner-ring" aria-hidden="true"></span>
+  <p>Fetching deployment status...</p>
+</div>
+
+<div class="carousel" aria-roledescription="carousel" aria-label="Highlights">
+  <div class="slide" role="group" aria-roledescription="slide">
+    <h2>Introducing Realtime Sync</h2>
+    <p>Collaborate with zero-lag cursors and comments.</p>
+  </div>
+  <div class="carousel-controls">
+    <button type="button" aria-label="Previous slide">Previous</button>
+    <button type="button" aria-label="Next slide">Next</button>
+  </div>
+</div>
+
+<div class="share" aria-label="Share this article">
+  <span>Share:</span>
+  <a href="https://x.com/intent/post?url=..." aria-label="Share on X">X</a>
+  <a href="https://www.linkedin.com/sharing/share-offsite/?url=..." aria-label="Share on LinkedIn">LinkedIn</a>
+  <a href="mailto:?subject=Great%20read&body=..." aria-label="Share by email">Email</a>
+</div>
+
+<ul class="stats-mini" aria-label="Repository stats">
+  <li><strong>1,204</strong> stars</li>
+  <li><strong>142</strong> forks</li>
+  <li><strong>38</strong> open issues</li>
+  <li><strong>12</strong> contributors</li>
+</ul>

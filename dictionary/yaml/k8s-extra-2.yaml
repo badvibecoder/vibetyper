@@ -1,0 +1,75 @@
+apiVersion: linkerd.io/v1alpha2
+kind: ServiceProfile
+metadata:
+  name: api.default.svc.cluster.local
+  namespace: default
+spec:
+  routes:
+    - name: GET /api/v1/orders
+      condition:
+        method: GET
+        pathRegex: /api/v1/orders
+      responseClasses:
+        - condition:
+            status:
+              range:
+                min: 200
+                max: 299
+          isFailure: false
+
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: infra
+  namespace: flux-system
+spec:
+  interval: 5m
+  url: https://github.com/acme/infra
+  ref:
+    branch: main
+  secretRef:
+    name: flux-system
+  ignore: |
+    /*
+    !/clusters/prod
+
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: internal
+spec:
+  controller: k8s.io/ingress-nginx
+  parameters:
+    apiGroup: k8s.example.com
+    kind: IngressParameters
+    name: internal-lb
+
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: high-priority
+value: 100000
+globalDefault: false
+description: "Used for latency-sensitive workloads."
+
+apiVersion: 1
+providers:
+  - name: dashboards
+    orgId: 1
+    folder: acme
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 60
+    options:
+      path: /var/lib/grafana/dashboards
+
+apiVersion: 1
+providers:
+  - name: ops
+    orgId: 2
+    folder: ""
+    type: file
+    disableDeletion: true
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/ops
