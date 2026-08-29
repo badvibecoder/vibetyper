@@ -1,5 +1,31 @@
 # vibetyper
 
+- - - - - -
+
+This webapp, music, libs were all make with deepseek v4 pro and v4 flash using deepseek harness. 
+
+Took around 2 hours (while doing other things and watching youtube).
+
+- Deepseek Harness Data
+    - Workspace Write
+    - DeepSeek-V4-Pro High Effort
+    - 21 Turns
+    - 155 Steps
+    - 58m 45s of LLM Time
+    - 82 tok/sec Average
+    - Cache hit 99.8%
+    - 26.8M Input Tokens
+    - 263K Output Tokens
+- Deepseek API Data
+    - 82,229,406 Total Tokens
+        - 58,369,830 Tokens deepseek-v4-flash
+            - 629 API Calls
+        - 25,859,576 Tokens deepseek-v4-pro
+            - 152 API Calls
+- $2.76 Spent
+
+- - - - - -
+
 A retrowave/synthwave typing trainer that measures your **words per minute**,
 **characters per minute**, **lines per minute**, and **accuracy** — not on a
 random dictionary, but on **real, production-shaped code**.
