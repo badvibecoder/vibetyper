@@ -2,7 +2,7 @@
 
 - - - - - -
 
-This webapp, music, libs were all make with deepseek v4 pro and v4 flash using deepseek harness. 
+This webapp, music, libs were made with deepseek v4 pro and v4 flash using deepseek harness. 
 
 Took around 2 hours (while doing other things and watching youtube).
 
