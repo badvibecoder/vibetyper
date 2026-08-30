@@ -78,6 +78,7 @@ dictionary/
 ├── python/      (456 blocks, indent)
 ├── javascript/  (317 blocks, braces)
 ├── go/          (387 blocks, braces)
+├── c/           (330 blocks, braces)
 ├── cpp/         (357 blocks, braces)
 ├── rust/        (322 blocks, braces)
 ├── zig/         (304 blocks, braces)
@@ -147,7 +148,7 @@ you can paste new files and refresh the page — no restart required. (Or hit
 
 Drop any number of code files into `dictionary/<lang>/` and each top-level
 function / class / struct / config section automatically becomes a separate
-typing block. The bundled dictionaries ship **4,733 blocks** across 14
+typing block. The bundled dictionaries ship **5,063 blocks** across 15
 languages:
 
 | language | folder | blocks | mode |
@@ -159,6 +160,7 @@ languages:
 | C++ | `cpp` | 357 | braces |
 | Odin | `odin` | 356 | braces |
 | Lua | `lua` | 339 | blank |
+| C | `c` | 330 | braces |
 | Rust | `rust` | 322 | braces |
 | JavaScript | `javascript` | 317 | braces |
 | Java | `java` | 312 | braces |
@@ -212,6 +214,7 @@ public/          # static frontend
   assets/logo.svg
 dictionary/      # modular code dictionaries (python, go, cpp, odin, …)
 music/           # drop-in music files (.mp3/.wav/…) for the player
+thock/           # keyboard sound pack (config.json + sound.ogg)
 data/            # persistent leaderboard.json
 scripts/         # dictionary generators
 ```

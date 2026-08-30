@@ -30,11 +30,14 @@
     timeBtns: Array.from(document.querySelectorAll('.time-select__btn')),
     views: Array.from(document.querySelectorAll('.view')),
     musicPlayer: document.getElementById('music-player'),
+    musicField: document.getElementById('music-field'),
     musicTitle: document.getElementById('music-title'),
     musicToggle: document.getElementById('music-toggle'),
     musicPrev: document.getElementById('music-prev'),
     musicNext: document.getElementById('music-next'),
     musicVolume: document.getElementById('music-volume'),
+    soundToggle: document.getElementById('sound-toggle'),
+    soundIcon: document.getElementById('sound-icon'),
   };
 
   // ---- state -----------------------------------------------------------
@@ -111,6 +114,8 @@
     if (wrapMode) wrapWidthValue = measureWrapWidth();
     els.codeArea.innerHTML = '';
     for (let i = 0; i < lines.length; i++) renderLine(i);
+    els.codeArea.scrollTop = 0;
+    els.codeArea.scrollLeft = 0;
     updateCaret();
   }
 
@@ -253,10 +258,22 @@
     const area = els.codeArea;
     const areaRect = area.getBoundingClientRect();
     const cellRect = cell.getBoundingClientRect();
-    const rel = cellRect.top - areaRect.top + area.scrollTop;
-    const margin = 46;
-    if (rel < area.scrollTop + margin || rel > area.scrollTop + area.clientHeight - margin) {
-      area.scrollTop = rel - area.clientHeight / 2;
+
+    // Vertical: keep the current line roughly centered.
+    const relTop = cellRect.top - areaRect.top + area.scrollTop;
+    const vMargin = 46;
+    if (relTop < area.scrollTop + vMargin || relTop > area.scrollTop + area.clientHeight - vMargin) {
+      area.scrollTop = relTop - area.clientHeight / 2;
+    }
+
+    // Horizontal: follow the caret on long lines, then snap back to the left
+    // when the line ends and the caret returns to the start of the next line.
+    const relLeft = cellRect.left - areaRect.left + area.scrollLeft;
+    const hMargin = 72; // keep this much look-ahead to the right of the caret
+    if (relLeft < area.scrollLeft + 2) {
+      area.scrollLeft = 0;
+    } else if (relLeft > area.scrollLeft + area.clientWidth - hMargin) {
+      area.scrollLeft = relLeft - area.clientWidth + hMargin;
     }
   }
 
@@ -328,6 +345,9 @@
     state.running = true;
     state.startTime = Date.now();
     setHint('');
+    // Auto-start the background music on the first keystroke if the user
+    // hasn't started it manually yet (same gesture-driven behavior as the keys).
+    if (!musicAutoStarted && musicTracks.length && audio.paused) playMusic();
     state.timerId = setInterval(() => {
       const remain = (state.duration * 1000 - (Date.now() - state.startTime)) / 1000;
       els.statTime.textContent = Math.max(0, Math.ceil(remain));
@@ -460,25 +480,26 @@
   const audio = new Audio();
   let musicTracks = [];
   let musicIndex = -1;
+  let musicHistory = [];        // indices already played, for "previous"
+  let musicAutoStarted = false; // once music has played, stop auto-starting
 
   async function loadMusic() {
     try {
       const res = await api('/api/music');
       musicTracks = res.tracks || [];
       if (!musicTracks.length) {
-        els.musicPlayer.classList.add('is-hidden');
+        els.musicField.classList.add('is-hidden');
         return;
       }
-      els.musicPlayer.classList.remove('is-hidden');
-      const saved = Number(localStorage.getItem('vibetyper.musicIndex'));
-      musicIndex = Number.isInteger(saved) && saved >= 0 && saved < musicTracks.length ? saved : 0;
+      els.musicField.classList.remove('is-hidden');
+      musicIndex = (Math.random() * musicTracks.length) | 0;
       const savedVol = localStorage.getItem('vibetyper.volume');
       audio.volume = savedVol === null ? 0.75 : clampVolume(Number(savedVol));
       els.musicVolume.value = String(audio.volume);
       audio.src = musicTracks[musicIndex].url;
       updateMusicUI();
     } catch (_) {
-      els.musicPlayer.classList.add('is-hidden');
+      els.musicField.classList.add('is-hidden');
     }
   }
 
@@ -500,7 +521,6 @@
 
   function loadTrack() {
     audio.src = musicTracks[musicIndex].url;
-    localStorage.setItem('vibetyper.musicIndex', String(musicIndex));
     playMusic();
     updateMusicUI();
   }
@@ -513,13 +533,22 @@
 
   function nextTrack() {
     if (!musicTracks.length) return;
-    musicIndex = (musicIndex + 1) % musicTracks.length;
+    musicHistory.push(musicIndex);
+    if (musicTracks.length === 1) {
+      musicIndex = 0;
+    } else {
+      let next;
+      do { next = (Math.random() * musicTracks.length) | 0; } while (next === musicIndex);
+      musicIndex = next;
+    }
     loadTrack();
   }
 
   function prevTrack() {
     if (!musicTracks.length) return;
-    musicIndex = (musicIndex - 1 + musicTracks.length) % musicTracks.length;
+    musicIndex = musicHistory.length
+      ? musicHistory.pop()
+      : (musicIndex - 1 + musicTracks.length) % musicTracks.length;
     loadTrack();
   }
 
@@ -557,6 +586,7 @@
     let n = 0;
     while (n < TAB_WIDTH && state.pos + n < flat.length && flat[state.pos + n] === ' ') n++;
     if (n === 0) return;
+    playThock();
     if (!state.running) start();
     for (let i = 0; i < n; i++) {
       setCharState(state.pos, 'correct');
@@ -565,6 +595,63 @@
     updateCaret();
     if (state.pos >= flat.length) appendMore();
     updateStats();
+  }
+
+  // ---- keyboard sound ---------------------------------------------------
+  let audioCtx = null;
+  let keySoundBuffer = null;   // decoded sound.ogg
+  let keySlices = [];          // [{ start, dur }] in seconds
+  let soundOn = localStorage.getItem('vibetyper.sound') !== 'off';
+
+  function ensureAudio() {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    if (!audioCtx) audioCtx = new AC();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+  }
+
+  // Load the sound pack: config.json maps key ids to [start_ms, duration_ms]
+  // slices inside sound.ogg — each slice is one recorded key press.
+  async function loadKeySound() {
+    try {
+      const cfg = await (await fetch('/thock/config.json')).json();
+      const src = cfg.sound || 'sound.ogg';
+      const defines = cfg.defines || {};
+      keySlices = Object.values(defines)
+        .filter((d) => Array.isArray(d) && d.length >= 2 && d[1] > 0)
+        .map((d) => ({ start: d[0] / 1000, dur: d[1] / 1000 }));
+      if (!keySlices.length) return;
+
+      const ctx = ensureAudio();
+      if (!ctx) return;
+      const res = await fetch('/thock/' + src);
+      const arrayBuf = await res.arrayBuffer();
+      keySoundBuffer = await ctx.decodeAudioData(arrayBuf);
+    } catch (err) {
+      keySoundBuffer = null;
+      keySlices = [];
+    }
+  }
+
+  // Play one real recorded key press (a random slice from the sound pack).
+  function playThock() {
+    if (!soundOn) return;
+    const ctx = ensureAudio();
+    if (!ctx || !keySoundBuffer || !keySlices.length) return;
+    const slice = keySlices[(Math.random() * keySlices.length) | 0];
+    const src = ctx.createBufferSource();
+    src.buffer = keySoundBuffer;
+    const gain = ctx.createGain();
+    gain.gain.value = 0.75;
+    src.connect(gain).connect(ctx.destination);
+    src.start(0, slice.start, slice.dur + 0.02);
+  }
+
+  function updateSoundIcon() {
+    els.soundIcon.textContent = soundOn ? '🔊' : '🔇';
+    els.soundToggle.classList.toggle('is-muted', !soundOn);
+    els.soundToggle.title = soundOn ? 'Keyboard sound on' : 'Keyboard sound off';
   }
 
   // ---- keyboard --------------------------------------------------------
@@ -594,6 +681,7 @@
     if (e.key === 'Backspace') {
       e.preventDefault();
       if (!state.running || state.pos === 0) return;
+      playThock();
       state.pos -= 1;
       setCharState(state.pos, 'pending');
       updateCaret();
@@ -608,6 +696,7 @@
 
     e.preventDefault();
     if (!state.running) start();
+    playThock();
 
     if (state.pos >= flat.length) {
       appendMore();
@@ -696,8 +785,15 @@
     });
     els.musicVolume.addEventListener('change', () => els.musicVolume.blur());
     audio.addEventListener('ended', nextTrack);
-    audio.addEventListener('play', updateMusicUI);
+    audio.addEventListener('play', () => { musicAutoStarted = true; updateMusicUI(); });
     audio.addEventListener('pause', updateMusicUI);
+
+    // keyboard sound toggle
+    els.soundToggle.addEventListener('click', () => {
+      soundOn = !soundOn;
+      localStorage.setItem('vibetyper.sound', soundOn ? 'on' : 'off');
+      updateSoundIcon();
+    });
 
     // Re-wrap prose once webfonts finish loading (mono char width changes).
     if (document.fonts && document.fonts.ready) {
@@ -712,5 +808,7 @@
     els.statTime.textContent = state.duration;
     loadLanguages();
     loadMusic();
+    loadKeySound();
+    updateSoundIcon();
   });
 })();

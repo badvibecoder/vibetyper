@@ -22,6 +22,7 @@ const DATA_DIR = path.join(ROOT, 'data');
 const PUBLIC_DIR = path.join(ROOT, 'public');
 const LEADERBOARD_FILE = path.join(DATA_DIR, 'leaderboard.json');
 const MUSIC_DIR = path.join(ROOT, 'music');
+const THOCK_DIR = path.join(ROOT, 'thock');
 
 const PORT = Number(process.env.PORT) || 8080;
 
@@ -62,6 +63,10 @@ const server = http.createServer((req, res) => {
     }
     if (route.startsWith('/music/')) {
       serveMusic(req, res, url.pathname);
+      return;
+    }
+    if (route.startsWith('/thock/')) {
+      serveThock(res, route);
       return;
     }
     serveStatic(res, url.pathname);
@@ -154,6 +159,29 @@ function submitScore(body) {
   }
 
   return leaderboard.add({ name: body.name, language, wpm, cpm, lpm, accuracy });
+}
+
+// Serve the "thock" sound-pack directory (config.json + audio files).
+function serveThock(res, pathname) {
+  const rel = decodeURIComponent(pathname).replace(/^\/thock\//, '');
+  if (!rel || rel.includes('/') || rel.includes('..')) return sendJson(res, 403, { error: 'forbidden' });
+  const filePath = path.join(THOCK_DIR, rel);
+  const ext = path.extname(filePath).toLowerCase();
+  const type = ext === '.ogg' ? 'audio/ogg'
+    : ext === '.json' ? 'application/json; charset=utf-8'
+    : ext === '.wav' ? 'audio/wav'
+    : ext === '.mp3' ? 'audio/mpeg'
+    : ext === '.flac' ? 'audio/flac'
+    : ext === '.m4a' ? 'audio/mp4'
+    : 'application/octet-stream';
+  fs.readFile(filePath, (err, data) => {
+    if (err) {
+      if (err.code === 'ENOENT') return sendJson(res, 404, { error: 'not found' });
+      return sendJson(res, 500, { error: 'read error' });
+    }
+    res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-cache' });
+    res.end(data);
+  });
 }
 
 // --- music --------------------------------------------------------------
