@@ -9,20 +9,15 @@ Took around 2 hours (while doing other things and watching youtube).
 - Deepseek Harness Data
     - Workspace Write
     - DeepSeek-V4-Pro High Effort
-    - 21 Turns
-    - 155 Steps
-    - 58m 45s of LLM Time
     - 82 tok/sec Average
-    - Cache hit 99.8%
-    - 26.8M Input Tokens
-    - 263K Output Tokens
+    - Cache hit 99.99%
 - Deepseek API Data
-    - 82,229,406 Total Tokens
+    - 128,848,260 Total Tokens
         - 58,369,830 Tokens deepseek-v4-flash
             - 629 API Calls
-        - 25,859,576 Tokens deepseek-v4-pro
-            - 152 API Calls
-- $2.76 Spent
+        - 70,478,430 Tokens deepseek-v4-pro
+            - 274 API Calls
+- $4.28 Spent
 
 - - - - - -
 
