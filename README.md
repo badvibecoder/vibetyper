@@ -42,6 +42,8 @@ Then open **http://localhost:8080** (set `PORT` to change the port).
 Zero dependencies — the server uses only Node's built-in modules.
 
 - Pick a language and a duration (15 / 30 / 60 / 120 seconds).
+- The **text size** control in the top bar cycles the typing text between
+  16.5px, 20.5px (default), and 24.5px — your choice is remembered.
 - Click into the code area and **start typing**. Typing never blocks: wrong
   characters turn glowing red and the cursor keeps moving — hit `Backspace`
   to go back and fix them, or keep going.
@@ -64,6 +66,10 @@ Speeds are computed live against elapsed time, and the final score uses the
 full timed duration. **wpm/cpm count only characters you typed correctly**
 (net speed) — wrong keys left unfixed don't inflate the score, so mashing
 random keys is worthless.
+
+When a run finishes, the results modal also plots a **speed/accuracy chart**:
+per 5-second interval, it graphs your wpm (left axis) against your accuracy
+(right axis) from the run's keystroke log.
 
 When you save, the client sends its **keystroke log** and the server *replays*
 it against the exact text it served, recomputes the metrics itself, and only
@@ -100,6 +106,7 @@ dictionary/
 ├── lua/         (339 blocks, blank)
 ├── html/        (301 blocks, blank)
 ├── english/     (270 blocks, blank, wrap)
+├── words/       (998 words, word-mode)
 └── bash/        (400 blocks, blank)
     └── each folder holds a `setup` file + any number of code files
 ```
@@ -110,9 +117,15 @@ Each **sub-directory is one language**. The webapp:
 2. ingests **every other file** in the directory (sub-folders are walked too)
    as that language's dictionary,
 3. splits each file into **congruent blocks** — whole functions, classes,
-   structs, or short runs of top-level statements — and
+   structs, short runs of top-level statements, or (for `word` mode) individual
+   lowercase words — and
 4. serves a **randomly-ordered** selection of those intact blocks, so the
    ordering stays fresh for repeat users while never scrambling a block.
+
+The `words/` dictionary is a special monkeytype-style mode: the word list is
+shuffled and served as one continuous, space-separated run-on stream — no
+punctuation, no line breaks, no periods. `lpm` is 0 for this mode (there are no
+lines to complete), which is expected.
 
 ### The `setup` file
 
@@ -138,6 +151,8 @@ blockmode = indent
 - **`indent`** — indentation-based splitting (Python).
 - **`braces`** — brace-matching splitting (Go, C, C++, Odin, Rust, Java, JS…).
 - **`blank`** — generic blank-line splitting for anything else.
+- **`words`** — tokenizes the file into lowercase words (stripping punctuation)
+  and serves them as a continuous space-separated stream. Use `wrap = true`.
 
 If you omit `blockmode`, it is inferred from the extension: `.py` → `indent`;
 `.go`, `.c`, `.h`, `.cpp`, `.cc`, `.odin`, `.rs`, `.zig`, `.java`, `.cs`, `.js`,
@@ -159,11 +174,12 @@ you can paste new files and refresh the page — no restart required. (Or hit
 
 Drop any number of code files into `dictionary/<lang>/` and each top-level
 function / class / struct / config section automatically becomes a separate
-typing block. The bundled dictionaries ship **5,063 blocks** across 15
+typing block. The bundled dictionaries ship **6,061 blocks** across 16
 languages:
 
 | language | folder | blocks | mode |
 | --- | --- | --- | --- |
+| Words | `words` | 998 | words |
 | Python | `python` | 456 | indent |
 | Bash | `bash` | 400 | blank |
 | Go | `go` | 387 | braces |

@@ -20,7 +20,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { splitSource } from './blockSplitter.js';
+import { splitSource, splitWords } from './blockSplitter.js';
 
 const SETUP_FILE = 'setup';
 
@@ -88,7 +88,7 @@ export function loadDictionary(root) {
     const blockmode = meta.blockmode || null;
     const wrap = meta.wrap === 'true' || meta.wrap === '1' || meta.wrap === 'yes';
 
-    const blocks = [];
+    let blocks = [];
     let files = 0;
 
     const filesOnDisk = walkFiles(dir).filter((f) => path.basename(f) !== SETUP_FILE);
@@ -109,17 +109,28 @@ export function loadDictionary(root) {
       source = source.replace(/\t/g, '    ');
 
       let fileBlocks;
-      try {
-        fileBlocks = splitSource(source, blockmode, ext);
-      } catch (e) {
-        errors.push(`[${langId}] failed to split ${path.relative(dir, file)}: ${e.message}`);
-        fileBlocks = [];
+      if (blockmode === 'words') {
+        fileBlocks = splitWords(source);
+      } else {
+        try {
+          fileBlocks = splitSource(source, blockmode, ext);
+        } catch (e) {
+          errors.push(`[${langId}] failed to split ${path.relative(dir, file)}: ${e.message}`);
+          fileBlocks = [];
+        }
       }
 
-      // Drop trivially small fragments (whitespace-only, lone symbols).
-      const usable = fileBlocks.filter((b) => b.trim().length >= 2);
+      // Words mode keeps single-letter words ("a", "i"); code/text modes drop
+      // trivially small fragments (whitespace-only, lone symbols).
+      const usable = blockmode === 'words'
+        ? fileBlocks.filter((w) => w.length >= 1)
+        : fileBlocks.filter((b) => b.trim().length >= 2);
       if (usable.length) files++;
       blocks.push(...usable);
+    }
+
+    if (blockmode === 'words') {
+      blocks = [...new Set(blocks)]; // unique words only
     }
 
     if (blocks.length) {
@@ -129,7 +140,8 @@ export function loadDictionary(root) {
         ext,
         comment,
         blockmode: blockmode || (ext === 'py' ? 'indent' : BRACE_EXTS.has(ext) ? 'braces' : 'blank'),
-        wrap,
+        wrap: wrap || blockmode === 'words',
+        words: blockmode === 'words',
         files,
         blockCount: blocks.length,
         blocks,

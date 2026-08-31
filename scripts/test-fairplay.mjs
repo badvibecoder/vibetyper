@@ -136,13 +136,14 @@ const s5 = await api('/api/scores', {
 ok(s5.res.status === 400, `out-of-order log rejected with 400 (got ${s5.res.status})`);
 
 // ---- 6. dedup: same name+lang, better score ----------------------------
+// Reuse step 1's exact text + token so "better" is deterministic: same text,
+// faster interval -> genuinely higher wpm (no random-text-length flakiness).
 console.log('\n== 6. dedup — same user, better score ==');
-const t6 = await api('/api/test?lang=english&len=500');
-const betterLog = buildLog(t6.body.text, { interval: 70, errors: 1 });
+const betterLog = buildLog(text, { interval: 40, errors: 0 }); // 587 chars / ~40ms -> ~235 wpm
 const s6 = await api('/api/scores', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ name: 'alice', language: 'english', token: t6.body.token, duration: fitDuration(betterLog[betterLog.length - 1].t), log: betterLog }),
+  body: JSON.stringify({ name: 'alice', language: 'english', token, duration: fitDuration(betterLog[betterLog.length - 1].t), log: betterLog }),
 }); // note lowercase "alice" — same user
 ok(s6.res.status === 201, 'better score accepted');
 ok(s6.body.entry.wpm > s1.body.entry.wpm, `new wpm ${s6.body.entry.wpm} > old ${s1.body.entry.wpm}`);
@@ -151,12 +152,11 @@ ok(s6.body.total === 1, 'still only 1 unique entry');
 
 // ---- 7. dedup: worse score, best unchanged -----------------------------
 console.log('\n== 7. dedup — worse score keeps best ==');
-const t7 = await api('/api/test?lang=english&len=500');
-const worseLog = buildLog(t7.body.text, { interval: 200, errors: 10 });
+const worseLog = buildLog(text, { interval: 200, errors: 10 }); // slow + errorful -> ~58 wpm
 const s7 = await api('/api/scores', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ name: 'Alice', language: 'english', token: t7.body.token, duration: fitDuration(worseLog[worseLog.length - 1].t), log: worseLog }),
+  body: JSON.stringify({ name: 'Alice', language: 'english', token, duration: fitDuration(worseLog[worseLog.length - 1].t), log: worseLog }),
 });
 ok(s7.res.status === 201, 'worse score stored (history kept)');
 ok(s7.body.best && s7.body.best.id === s6.body.entry.id, 'best entry unchanged');

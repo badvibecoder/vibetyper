@@ -316,6 +316,29 @@ body {
 
 .sound-toggle.is-muted { opacity: 0.55; }
 
+.font-size-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  padding: 0 14px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--cyan);
+  background: rgba(20, 6, 40, 0.7);
+  border: var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  line-height: 1;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.font-size-btn:hover {
+  border-color: var(--purple);
+  box-shadow: var(--glow-purple);
+}
+
 /* ------------------------------------------------------------
    Views
    ------------------------------------------------------------ */
@@ -406,9 +429,10 @@ main { flex: 1; display: flex; flex-direction: column; }
   height: 52vh;
   min-height: 320px;
   overflow-y: auto;
+  overflow-x: hidden; /* long code lines slide per-row instead of panning the pane */
   padding: 18px 20px;
   font-family: var(--font-mono);
-  font-size: 16.5px;
+  font-size: 20.5px; /* default; range is 16.5 → 24.5 via the text-size control */
   line-height: 1.7;
   color: var(--text-dim);
   outline: none;
@@ -780,6 +804,20 @@ main { flex: 1; display: flex; flex-direction: column; }
   color: var(--text-faint);
 }
 
+.chart-wrap {
+  margin: 16px 0 4px;
+  padding: 10px;
+  border: var(--border);
+  border-radius: 12px;
+  background: rgba(20, 6, 40, 0.5);
+}
+
+#results-chart {
+  display: block;
+  width: 100%;
+  height: 180px;
+}
+
 .save-row {
   display: flex;
   gap: 10px;
@@ -906,7 +944,7 @@ main { flex: 1; display: flex; flex-direction: column; }
   .stats { grid-template-columns: repeat(3, 1fr); }
   .stat--timer { grid-column: span 3; }
   .results { grid-template-columns: repeat(2, 1fr); }
-  .code-area { height: 46vh; font-size: 15px; }
+  .code-area { height: 46vh; font-size: 20.5px; }
   .music-player { padding: 6px 10px; gap: 6px; }
   .music-player__title { max-width: 90px; }
   .music-volume { width: 50px; }

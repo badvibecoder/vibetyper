@@ -43,10 +43,10 @@ const sessions = new Map();
 const SESSION_TTL_MS = 15 * 60 * 1000;
 const MAX_SESSIONS = 200;
 
-function createSession(lang, chunk) {
+function createSession(lang, chunk, words) {
   pruneSessions();
   const token = randomUUID();
-  sessions.set(token, { lang, chunks: [chunk], createdAt: Date.now() });
+  sessions.set(token, { lang, chunks: [chunk], words: !!words, createdAt: Date.now() });
   return token;
 }
 
@@ -167,15 +167,15 @@ function handleApi(req, res, url, method, route) {
       return sendJson(res, 404, { error: 'test session expired or not found — restart the test' });
     }
 
-    const { text, blockCount, charCount } = assembleTest(language.blocks, targetLen);
+    const { text, blockCount, charCount } = assembleTest(language, targetLen);
     let sessionToken = token;
     if (session) {
-      session.chunks.push(text); // append: client joins chunks with '\n\n' itself
+      session.chunks.push(text); // append: client joins chunks itself (see app.js)
     } else {
-      sessionToken = createSession(langId, text); // initial fetch: new session
+      sessionToken = createSession(langId, text, !!language.words); // initial fetch: new session
     }
     return sendJson(res, 200, {
-      language: { id: language.id, name: language.name, ext: language.ext, wrap: language.wrap },
+      language: { id: language.id, name: language.name, ext: language.ext, wrap: language.wrap, words: !!language.words },
       text,
       blockCount,
       charCount,
@@ -242,7 +242,9 @@ function submitScore(body) {
 // client joins them: '\n\n') and returns server-computed metrics. Throws
 // ApiError(422) when the run fails the anti-smash / plausibility checks.
 function verifyAndCompute(session, log, duration) {
-  const text = session.chunks.join('\n\n');
+  // Word mode is one continuous stream (join with single spaces); everything
+  // else keeps the block/paragraph break the client uses.
+  const text = session.chunks.join(session.words ? ' ' : '\n\n');
   const flat = text.split('');
   const n = flat.length;
   // 0 = pending, 1 = correct, 2 = incorrect (same semantics as app.js)
@@ -514,8 +516,10 @@ function readJsonBody(req) {
   });
 }
 
-function assembleTest(blocks, targetLen) {
-  const pool = shuffle([...blocks]);
+function assembleTest(language, targetLen) {
+  if (language.words) return assembleWords(language.blocks, targetLen);
+
+  const pool = shuffle([...language.blocks]);
   const picked = [];
   let total = 0;
   const minBlocks = 3;
@@ -529,6 +533,24 @@ function assembleTest(blocks, targetLen) {
   }
 
   const text = picked.join('\n\n');
+  return { text, blockCount: picked.length, charCount: text.length };
+}
+
+// Word mode: a continuous run-on stream of shuffled words joined by single
+// spaces — no punctuation, no newlines (monkeytype-style).
+function assembleWords(words, targetLen) {
+  const pool = shuffle([...words]);
+  const picked = [];
+  let total = 0;
+
+  for (const w of pool) {
+    picked.push(w);
+    total += w.length + 1; // +1 for the joining space
+    if (picked.length >= 8 && total - 1 >= targetLen) break;
+    if (picked.length >= 500) break;
+  }
+
+  const text = picked.join(' ');
   return { text, blockCount: picked.length, charCount: text.length };
 }
 

@@ -221,12 +221,29 @@ export function splitBlank(source) {
 }
 
 // ---------------------------------------------------------------------------
+// Word mode (monkeytype-style)
+// ---------------------------------------------------------------------------
+// A word dictionary is just a bag of lowercase words with no punctuation. The
+// whole file is tokenized on whitespace; each token becomes a single "block".
+// Words are served as one continuous, space-separated stream (no newlines), so
+// the trainer reads as a run-on sentence.
+export function splitWords(source) {
+  const words = [];
+  for (const token of source.split(/\s+/)) {
+    const w = token.toLowerCase().replace(/[^a-z]/g, '');
+    if (w.length >= 1) words.push(w);
+  }
+  return words;
+}
+
+// ---------------------------------------------------------------------------
 // Dispatcher
 // ---------------------------------------------------------------------------
 export function splitSource(source, mode, ext) {
   if (mode === 'indent') return splitPython(source);
   if (mode === 'braces') return splitBraced(source);
   if (mode === 'blank') return splitBlank(source);
+  if (mode === 'words') return splitWords(source);
 
   // Infer from extension when no explicit mode is given.
   if (['py'].includes(ext)) return splitPython(source);

@@ -53,6 +53,11 @@
         </div>
 
         <div class="field">
+          <span class="field__label">text size</span>
+          <button class="font-size-btn" id="font-size-btn" title="Typing text size" aria-label="Change typing text size">A 20.5</button>
+        </div>
+
+        <div class="field">
           <span class="field__label">thock</span>
           <button class="sound-toggle" id="sound-toggle" title="Keyboard sound on" aria-label="Toggle keyboard sound">
             <span id="sound-icon">🔊</span>
@@ -173,6 +178,9 @@
           <span class="results__value" id="res-acc">100%</span>
           <span class="results__label">accuracy</span>
         </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="results-chart" width="560" height="180"></canvas>
       </div>
       <div class="save-row">
         <input class="input" id="name-input" maxlength="24" placeholder="your name" autocomplete="off" />

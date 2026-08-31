@@ -22,6 +22,7 @@
     resCpm: document.getElementById('res-cpm'),
     resLpm: document.getElementById('res-lpm'),
     resAcc: document.getElementById('res-acc'),
+    resultsChart: document.getElementById('results-chart'),
     nameInput: document.getElementById('name-input'),
     saveBtn: document.getElementById('save-btn'),
     saveStatus: document.getElementById('save-status'),
@@ -38,6 +39,7 @@
     musicVolume: document.getElementById('music-volume'),
     soundToggle: document.getElementById('sound-toggle'),
     soundIcon: document.getElementById('sound-icon'),
+    fontSizeBtn: document.getElementById('font-size-btn'),
   };
 
   // ---- state -----------------------------------------------------------
@@ -59,12 +61,22 @@
     testToken: null,   // session token for server-side score verification
     log: [],           // keystroke log: { t (ms since start), k, ok }
     smashLatch: false, // a rolling 8s window tripped — this run is ineligible
+    wordsMode: false,  // word-mode text (continuous stream, no newlines)
+    fontSize: 20.5,    // typing text size in px
   };
 
   // Anti-smash window (must match server/index.js).
   const SMASH_WINDOW_MS = 8000;
   const SMASH_MIN_KEYS = 25;
   const SMASH_MAX_ERROR_RATE = 0.3;
+
+  // Typing text size steps (px): smallest = the original default, default is
+  // +4, max is +8.
+  const FONT_SIZES = [16.5, 20.5, 24.5];
+  const DEFAULT_FONT_SIZE = 20.5;
+
+  // Results chart: one speed/accuracy sample per 5-second interval.
+  const CHART_BUCKET_MS = 5000;
 
   let currentView = 'test';
   let flat = [];        // every character in state.text (including '\n')
@@ -73,6 +85,7 @@
   let charState = [];   // 'pending' | 'correct' | 'incorrect'
   let cells = [];       // DOM cell per flat index
   let cursorIdx = null;
+  let shiftedRow = null; // the .code-line currently translateX'd for long-line follow
   let languageNames = {};
   let wrapMode = false;       // prose languages soft-wrap instead of one line per \n
   let wrapWidthValue = 80;    // chars per wrapped visual line (prose)
@@ -121,6 +134,7 @@
     charState = new Array(flat.length).fill('pending');
     cells = new Array(flat.length).fill(null);
     cursorIdx = null;
+    shiftedRow = null;
     if (wrapMode) wrapWidthValue = measureWrapWidth();
     els.codeArea.innerHTML = '';
     for (let i = 0; i < lines.length; i++) renderLine(i);
@@ -276,15 +290,29 @@
       area.scrollTop = relTop - area.clientHeight / 2;
     }
 
-    // Horizontal: follow the caret on long lines, then snap back to the left
-    // when the line ends and the caret returns to the start of the next line.
-    const relLeft = cellRect.left - areaRect.left + area.scrollLeft;
-    const hMargin = 72; // keep this much look-ahead to the right of the caret
-    if (relLeft < area.scrollLeft + 2) {
-      area.scrollLeft = 0;
-    } else if (relLeft > area.scrollLeft + area.clientWidth - hMargin) {
-      area.scrollLeft = relLeft - area.clientWidth + hMargin;
+    // Horizontal: for code lines that are wider than the pane, slide ONLY the
+    // active line left so the caret holds at the midpoint once it passes it —
+    // the text moves under the caret, and upcoming lines keep their beginnings
+    // visible. Wrapped rows (words / english prose) already fit, so they stay
+    // put and just let the caret walk across them.
+    if (wrapMode) {
+      if (shiftedRow) {
+        shiftedRow.style.transform = '';
+        shiftedRow = null;
+      }
+      return;
     }
+
+    const row = cell.parentElement;
+    if (!row) return;
+    if (shiftedRow && shiftedRow !== row) shiftedRow.style.transform = '';
+    shiftedRow = row;
+
+    // The caret's x within the row, in layout coordinates (the row's own
+    // transform cancels out when we take this difference).
+    const caretX = cellRect.left - row.getBoundingClientRect().left;
+    const shift = Math.max(0, caretX - area.clientWidth * 0.5);
+    row.style.transform = shift > 0 ? `translateX(${-shift}px)` : '';
   }
 
   function triggerShake(cell) {
@@ -301,7 +329,8 @@
     api(`/api/test?lang=${state.lang}&len=${TARGET_LEN}&token=${encodeURIComponent(state.testToken)}`)
       .then((res) => {
         const oldLineCount = lines.length;
-        state.text = state.text + '\n\n' + res.text;
+        // Word mode stays one continuous stream (no paragraph breaks).
+        state.text = state.text + (state.wordsMode ? ' ' : '\n\n') + res.text;
         // rebuild arrays, preserving existing char state (old text is a prefix)
         const oldChar = charState;
         flat = state.text.split('');
@@ -410,6 +439,7 @@
     try {
       const res = await api(`/api/test?lang=${state.lang}&len=${TARGET_LEN}`);
       wrapMode = !!(res.language && res.language.wrap);
+      state.wordsMode = !!(res.language && res.language.words);
       state.testToken = res.token || null;
       setText(res.text);
       els.codeTitle.textContent = languageNames[state.lang] || state.lang;
@@ -439,10 +469,142 @@
     els.saveBtn.style.display = '';
     els.nameInput.value = localStorage.getItem('vibetyper.name') || '';
     els.resultsModal.classList.remove('is-hidden');
+    drawChart();
   }
 
   function closeModal() {
     els.resultsModal.classList.add('is-hidden');
+  }
+
+  // ---- results chart ---------------------------------------------------
+  // Buckets the keystroke log into 5-second intervals and plots per-interval
+  // wpm (left axis) and accuracy (right axis) on a small canvas chart.
+  function computeChartData() {
+    const bucketCount = Math.max(1, Math.ceil((state.duration * 1000) / CHART_BUCKET_MS));
+    const buckets = Array.from({ length: bucketCount }, (_, i) => ({
+      start: i * CHART_BUCKET_MS,
+      end: (i + 1) * CHART_BUCKET_MS,
+      correct: 0,
+      wrong: 0,
+    }));
+
+    for (const e of state.log) {
+      if (!e || e.k === '\b') continue; // backspaces aren't typing events
+      const t = Number(e.t);
+      if (!Number.isFinite(t) || t < 0) continue;
+      let idx = Math.floor(t / CHART_BUCKET_MS);
+      if (idx < 0) idx = 0;
+      if (idx >= bucketCount) idx = bucketCount - 1;
+      if (e.ok) buckets[idx].correct++;
+      else buckets[idx].wrong++;
+    }
+
+    return buckets.map((b, i) => {
+      const total = b.correct + b.wrong;
+      const secs = (b.end - b.start) / 1000;
+      return {
+        label: i * (CHART_BUCKET_MS / 1000),
+        wpm: Math.round(b.correct / 5 / (secs / 60)),
+        acc: total ? Math.round((b.correct / total) * 100) : null,
+      };
+    });
+  }
+
+  function drawChart() {
+    const canvas = els.resultsChart;
+    if (!canvas) return;
+    const data = computeChartData();
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const cssW = canvas.clientWidth || 520;
+    const cssH = canvas.clientHeight || 180;
+    canvas.width = Math.max(1, Math.round(cssW * dpr));
+    canvas.height = Math.max(1, Math.round(cssH * dpr));
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
+
+    const WPM_COLOR = '#00e5ff';
+    const ACC_COLOR = '#ff2d95';
+    const padL = 34;
+    const padR = 30;
+    const padT = 12;
+    const padB = 22;
+    const plotW = cssW - padL - padR;
+    const plotH = cssH - padT - padB;
+    if (plotW <= 0 || plotH <= 0) return;
+
+    const maxWpm = Math.max(60, ...data.map((d) => d.wpm));
+    const x = (i) => padL + (data.length === 1 ? plotW / 2 : (i / (data.length - 1)) * plotW);
+    const yWpm = (v) => padT + plotH - (v / maxWpm) * plotH;
+    const yAcc = (v) => padT + plotH - (v / 100) * plotH;
+
+    ctx.font = '10px ui-monospace, SFMono-Regular, Menlo, monospace';
+
+    // Horizontal gridlines + wpm axis labels.
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    for (let g = 0; g <= 4; g++) {
+      const gy = padT + (g / 4) * plotH;
+      ctx.beginPath();
+      ctx.moveTo(padL, gy);
+      ctx.lineTo(cssW - padR, gy);
+      ctx.stroke();
+      ctx.fillText(String(Math.round(maxWpm * (1 - g / 4))), padL - 5, gy);
+    }
+    // Accuracy axis (right).
+    ctx.textAlign = 'left';
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.fillText('100%', cssW - padR + 4, padT);
+
+    // X-axis labels (thin them out on long tests).
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    const step = data.length > 12 ? 2 : 1;
+    data.forEach((d, i) => {
+      if (i % step !== 0 && i !== data.length - 1) return;
+      ctx.fillText(d.label + 's', x(i), padT + plotH + 5);
+    });
+
+    // wpm line.
+    const wpmPts = data.map((d, i) => [x(i), yWpm(d.wpm)]);
+    strokePath(ctx, wpmPts, WPM_COLOR, 1.7);
+
+    // accuracy line (skip intervals with no keystrokes).
+    const accPts = [];
+    data.forEach((d, i) => {
+      if (d.acc != null) accPts.push([x(i), yAcc(d.acc)]);
+    });
+    strokePath(ctx, accPts, ACC_COLOR, 1.4);
+
+    // Legend.
+    const lx = padL + 2;
+    const ly = padT + 2;
+    ctx.fillStyle = WPM_COLOR;
+    ctx.fillRect(lx, ly, 9, 9);
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText('wpm', lx + 13, ly + 0);
+    ctx.fillStyle = ACC_COLOR;
+    ctx.fillRect(lx + 48, ly, 9, 9);
+    ctx.fillText('accuracy', lx + 61, ly + 0);
+  }
+
+  function strokePath(ctx, pts, color, width) {
+    if (!pts.length) return;
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let k = 1; k < pts.length; k++) ctx.lineTo(pts[k][0], pts[k][1]);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.stroke();
   }
 
   async function saveScore() {
@@ -701,6 +863,31 @@
     els.soundToggle.title = soundOn ? 'Keyboard sound on' : 'Keyboard sound off';
   }
 
+  // ---- text size -------------------------------------------------------
+  function applyFontSize(size) {
+    state.fontSize = size;
+    els.codeArea.style.fontSize = size + 'px';
+    els.fontSizeBtn.textContent = 'A ' + size;
+    els.fontSizeBtn.title = `Typing text size: ${size}px — click to change`;
+  }
+
+  function cycleFontSize() {
+    const idx = FONT_SIZES.indexOf(state.fontSize);
+    const next = FONT_SIZES[(idx + 1) % FONT_SIZES.length];
+    applyFontSize(next);
+    localStorage.setItem('vibetyper.fontSize', String(next));
+    // Prose wraps on a measured character width, so re-measure + re-split the
+    // text. Only safe when a run isn't in progress (it rebuilds the cells).
+    if (wrapMode && state.text && !state.running && !state.finished) {
+      setText(state.text);
+    }
+  }
+
+  function loadFontSize() {
+    const saved = Number(localStorage.getItem('vibetyper.fontSize'));
+    applyFontSize(FONT_SIZES.includes(saved) ? saved : DEFAULT_FONT_SIZE);
+  }
+
   // Live (client-side) mirror of the server's anti-smash check — just a heads
   // up so the user doesn't type a full test that will be rejected. The server
   // remains the authority; this never blocks anything by itself.
@@ -868,6 +1055,9 @@
       updateSoundIcon();
     });
 
+    // typing text size
+    els.fontSizeBtn.addEventListener('click', cycleFontSize);
+
     // Re-wrap prose once webfonts finish loading (mono char width changes).
     if (document.fonts && document.fonts.ready) {
       document.fonts.ready.then(() => {
@@ -878,6 +1068,7 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     bindEvents();
+    loadFontSize();
     els.statTime.textContent = state.duration;
     loadLanguages();
     loadMusic();
