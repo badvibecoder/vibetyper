@@ -56,7 +56,15 @@
     linesDone: 0,
     text: '',
     lastResults: null,
+    testToken: null,   // session token for server-side score verification
+    log: [],           // keystroke log: { t (ms since start), k, ok }
+    smashLatch: false, // a rolling 8s window tripped — this run is ineligible
   };
+
+  // Anti-smash window (must match server/index.js).
+  const SMASH_WINDOW_MS = 8000;
+  const SMASH_MIN_KEYS = 25;
+  const SMASH_MAX_ERROR_RATE = 0.3;
 
   let currentView = 'test';
   let flat = [];        // every character in state.text (including '\n')
@@ -81,7 +89,9 @@
         const j = await res.json();
         if (j && j.error) msg = j.error;
       } catch (_) {}
-      throw new Error(msg);
+      const err = new Error(msg);
+      err.status = res.status;
+      throw err;
     }
     return res.json();
   }
@@ -286,8 +296,9 @@
 
   function appendMore() {
     if (state.appending) return;
+    if (!state.testToken) return; // text not loaded yet — keys aren't counted anyway
     state.appending = true;
-    api(`/api/test?lang=${state.lang}&len=${TARGET_LEN}`)
+    api(`/api/test?lang=${state.lang}&len=${TARGET_LEN}&token=${encodeURIComponent(state.testToken)}`)
       .then((res) => {
         const oldLineCount = lines.length;
         state.text = state.text + '\n\n' + res.text;
@@ -313,11 +324,14 @@
   }
 
   // ---- scoring ---------------------------------------------------------
+  // wpm/cpm count ONLY correctly-typed characters (net speed): wrong keys that
+  // are never fixed don't inflate the score, so random button-smashing is
+  // worthless even before the anti-smash check.
   function computeResults(elapsedMin) {
     const total = state.correct + state.errors;
     return {
-      wpm: Math.round(state.pos / 5 / elapsedMin),
-      cpm: Math.round(state.pos / elapsedMin),
+      wpm: Math.round(state.correct / 5 / elapsedMin),
+      cpm: Math.round(state.correct / elapsedMin),
       lpm: r1(state.linesDone / elapsedMin),
       accuracy: r1(total ? (state.correct / total) * 100 : 100),
     };
@@ -364,7 +378,11 @@
     const elapsedMin = Math.max((Date.now() - state.startTime) / 60000, 0.01);
     state.lastResults = computeResults(elapsedMin);
     showResults(state.lastResults);
-    setHint('test complete — press <kbd>Ctrl</kbd>+<kbd>R</kbd> to go again');
+    setHint(
+      state.smashLatch
+        ? 'test complete — ⚠ too many errors in a short span, this score is not eligible for the leaderboard'
+        : 'test complete — press <kbd>Ctrl</kbd>+<kbd>R</kbd> to go again',
+    );
   }
 
   function restart() {
@@ -377,6 +395,9 @@
     state.linesDone = 0;
     state.timeLeft = state.duration;
     state.lastResults = null;
+    state.testToken = null;
+    state.log = [];
+    state.smashLatch = false;
     els.statTime.textContent = state.duration;
     closeModal();
     setHint('start typing to begin — <kbd>Tab</kbd>/<kbd>space</kbd> indent · <kbd>Ctrl</kbd>+<kbd>R</kbd> restart');
@@ -389,6 +410,7 @@
     try {
       const res = await api(`/api/test?lang=${state.lang}&len=${TARGET_LEN}`);
       wrapMode = !!(res.language && res.language.wrap);
+      state.testToken = res.token || null;
       setText(res.text);
       els.codeTitle.textContent = languageNames[state.lang] || state.lang;
     } catch (err) {
@@ -425,22 +447,45 @@
 
   async function saveScore() {
     if (!state.lastResults) return;
+    if (!state.testToken) {
+      els.saveStatus.textContent = 'not saved: test session missing — take the test again';
+      els.saveStatus.className = 'save-status error';
+      return;
+    }
     const name = els.nameInput.value.trim() || 'anonymous';
     localStorage.setItem('vibetyper.name', name);
     els.saveBtn.disabled = true;
     try {
+      // The server replays the keystroke log against the text it served and
+      // computes the metrics itself — the client doesn't get to pick numbers.
       const r = await api('/api/scores', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, language: state.lang, ...state.lastResults }),
+        body: JSON.stringify({
+          name,
+          language: state.lang,
+          token: state.testToken,
+          duration: state.duration,
+          log: state.log,
+        }),
       });
-      els.saveStatus.textContent = `saved! you rank #${r.rank} of ${r.total}`;
+      // Show the server-verified numbers so the modal matches the board.
+      els.resWpm.textContent = r.entry.wpm;
+      els.resCpm.textContent = r.entry.cpm;
+      els.resLpm.textContent = r.entry.lpm;
+      els.resAcc.textContent = r.entry.accuracy + '%';
+      const isBest = r.best && r.best.id === r.entry.id;
+      els.saveStatus.textContent = isBest
+        ? `saved! you rank #${r.rank} of ${r.total}`
+        : `saved — your best (${r.best.wpm} wpm) still ranks #${r.rank} of ${r.total}`;
       els.saveStatus.className = 'save-status';
       els.saveBtn.style.display = 'none';
     } catch (err) {
-      els.saveStatus.textContent = 'failed to save: ' + err.message;
+      els.saveStatus.textContent = 'not saved: ' + err.message;
       els.saveStatus.className = 'save-status error';
-      els.saveBtn.disabled = false;
+      // 422 = this run was rejected (smashing / implausible), 404 = session
+      // expired — either way this attempt can't be saved.
+      els.saveBtn.disabled = err.status === 422 || err.status === 404;
     }
   }
 
@@ -588,6 +633,7 @@
     if (n === 0) return;
     playThock();
     if (!state.running) start();
+    state.log.push({ t: Date.now() - state.startTime, k: '\t', ok: true });
     for (let i = 0; i < n; i++) {
       setCharState(state.pos, 'correct');
       state.pos += 1;
@@ -595,6 +641,7 @@
     updateCaret();
     if (state.pos >= flat.length) appendMore();
     updateStats();
+    checkSmashLive();
   }
 
   // ---- keyboard sound ---------------------------------------------------
@@ -654,6 +701,29 @@
     els.soundToggle.title = soundOn ? 'Keyboard sound on' : 'Keyboard sound off';
   }
 
+  // Live (client-side) mirror of the server's anti-smash check — just a heads
+  // up so the user doesn't type a full test that will be rejected. The server
+  // remains the authority; this never blocks anything by itself.
+  function checkSmashLive() {
+    if (state.smashLatch) return;
+    if (!state.running || state.finished) return;
+    const nowRel = Date.now() - state.startTime;
+    let count = 0;
+    let errs = 0;
+    for (let i = state.log.length - 1; i >= 0; i--) {
+      const e = state.log[i];
+      if (nowRel - e.t > SMASH_WINDOW_MS) break;
+      if (e.k === '\b') continue;
+      count++;
+      if (e.ok === false) errs++;
+    }
+    if (count >= SMASH_MIN_KEYS && errs / count > SMASH_MAX_ERROR_RATE) {
+      state.smashLatch = true;
+      // Vague on purpose: don't hand out the detection parameters in the UI.
+      setHint('⚠ too many errors in a short span — this run won\'t be eligible for the leaderboard');
+    }
+  }
+
   // ---- keyboard --------------------------------------------------------
   function onKeyDown(e) {
     const target = e.target;
@@ -684,6 +754,7 @@
       playThock();
       state.pos -= 1;
       setCharState(state.pos, 'pending');
+      state.log.push({ t: Date.now() - state.startTime, k: '\b', ok: null });
       updateCaret();
       updateStats();
       return;
@@ -705,6 +776,7 @@
 
     const idx = state.pos;
     const isCorrect = keyChar === flat[idx];
+    state.log.push({ t: Date.now() - state.startTime, k: keyChar, ok: isCorrect });
     if (isCorrect) {
       setCharState(idx, 'correct');
       if (flat[idx] === '\n') state.linesDone += 1;
@@ -716,6 +788,7 @@
     if (!isCorrect) triggerShake(cells[idx]);
     if (state.pos >= flat.length) appendMore();
     updateStats();
+    checkSmashLive();
   }
 
   // ---- init ------------------------------------------------------------

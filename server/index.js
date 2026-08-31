@@ -12,6 +12,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { randomUUID } from 'node:crypto';
 import { loadDictionary } from './dictionaryLoader.js';
 import { createLeaderboard } from './leaderboard.js';
 
@@ -25,6 +26,55 @@ const MUSIC_DIR = path.join(ROOT, 'music');
 const THOCK_DIR = path.join(ROOT, 'thock');
 
 const PORT = Number(process.env.PORT) || 8080;
+
+// --- fair-play / verification constants ---------------------------------
+const TAB_WIDTH = 4;                    // must match public/js/app.js
+const SMASH_WINDOW_MS = 8000;           // rolling window for smash detection
+const SMASH_MIN_KEYS = 25;              // window must contain this many keys
+const SMASH_MAX_ERROR_RATE = 0.3;       // > 30% errors in the window rejects
+const MAX_LOG_LENGTH = 20000;           // hard cap on submitted keystroke logs
+const MAX_AVG_KEYS_PER_SEC = 20;        // sustained rate ceiling (humanly impossible above)
+const VALID_DURATIONS = new Set([15, 30, 60, 120]);
+
+// Test sessions: cache the exact text chunks each client was served so a
+// submitted keystroke log can be replayed and verified server-side. Tokens are
+// short-lived (a test lasts at most 120s) and pruned aggressively.
+const sessions = new Map();
+const SESSION_TTL_MS = 15 * 60 * 1000;
+const MAX_SESSIONS = 200;
+
+function createSession(lang, chunk) {
+  pruneSessions();
+  const token = randomUUID();
+  sessions.set(token, { lang, chunks: [chunk], createdAt: Date.now() });
+  return token;
+}
+
+function getSession(token, lang) {
+  const s = sessions.get(token);
+  if (!s || s.lang !== lang) return null;
+  return s;
+}
+
+function pruneSessions() {
+  const now = Date.now();
+  for (const [token, s] of sessions) {
+    if (now - s.createdAt > SESSION_TTL_MS) sessions.delete(token);
+  }
+  if (sessions.size > MAX_SESSIONS) {
+    const oldest = [...sessions.entries()]
+      .sort((a, b) => a[1].createdAt - b[1].createdAt)
+      .slice(0, sessions.size - MAX_SESSIONS);
+    for (const [token] of oldest) sessions.delete(token);
+  }
+}
+
+class ApiError extends Error {
+  constructor(message, status = 400) {
+    super(message);
+    this.status = status;
+  }
+}
 
 // --- dictionary state (reloadable) --------------------------------------
 let dict = { languages: [], errors: [] };
@@ -111,12 +161,25 @@ function handleApi(req, res, url, method, route) {
     if (!language) return sendJson(res, 404, { error: `unknown language: ${langId}` });
 
     const targetLen = clampInt(url.searchParams.get('len'), 400, 8000, 1500);
+    const token = url.searchParams.get('token');
+    const session = token ? getSession(token, langId) : null;
+    if (token && !session) {
+      return sendJson(res, 404, { error: 'test session expired or not found — restart the test' });
+    }
+
     const { text, blockCount, charCount } = assembleTest(language.blocks, targetLen);
+    let sessionToken = token;
+    if (session) {
+      session.chunks.push(text); // append: client joins chunks with '\n\n' itself
+    } else {
+      sessionToken = createSession(langId, text); // initial fetch: new session
+    }
     return sendJson(res, 200, {
       language: { id: language.id, name: language.name, ext: language.ext, wrap: language.wrap },
       text,
       blockCount,
       charCount,
+      token: sessionToken,
     });
   }
 
@@ -124,7 +187,7 @@ function handleApi(req, res, url, method, route) {
     const limit = clampInt(url.searchParams.get('limit'), 1, 10000, 0) || null;
     return sendJson(res, 200, {
       entries: leaderboard.ranked(limit),
-      total: leaderboard.all().length,
+      total: leaderboard.ranked().length, // unique (name, language) entries
     });
   }
 
@@ -134,7 +197,8 @@ function handleApi(req, res, url, method, route) {
         const result = submitScore(body);
         sendJson(res, 201, result);
       } catch (err) {
-        sendJson(res, 400, { error: String(err.message) });
+        const msg = err instanceof Error ? err.message : String(err);
+        sendJson(res, err instanceof ApiError ? err.status : 400, { error: msg });
       }
     });
     return;
@@ -143,22 +207,135 @@ function handleApi(req, res, url, method, route) {
   sendJson(res, 404, { error: 'not found' });
 }
 
+// Verify a score by replaying the client's keystroke log against the exact
+// text it was served, then compute the metrics server-side. The client no
+// longer gets to pick its own numbers — the leaderboard only contains scores
+// that survive replay + the anti-smash window check.
 function submitScore(body) {
   const language = String((body && body.language) || '').toLowerCase();
   if (!dict.languages.some((l) => l.id === language)) {
-    throw new Error(`unknown language: ${language || '(none)'}`);
+    throw new ApiError(`unknown language: ${language || '(none)'}`);
   }
 
-  const wpm = Number(body.wpm);
-  const cpm = Number(body.cpm);
-  const lpm = Number(body.lpm);
-  const accuracy = Number(body.accuracy);
-
-  if (![wpm, cpm, lpm, accuracy].every(Number.isFinite)) {
-    throw new Error('wpm, cpm, lpm and accuracy must be numbers');
+  const token = String((body && body.token) || '');
+  const session = getSession(token, language);
+  if (!session) {
+    throw new ApiError('test session not found or expired — please take the test again', 404);
   }
 
-  return leaderboard.add({ name: body.name, language, wpm, cpm, lpm, accuracy });
+  const duration = Number(body.duration);
+  if (!VALID_DURATIONS.has(duration)) {
+    throw new ApiError('invalid test duration');
+  }
+
+  const log = body.log;
+  if (!Array.isArray(log) || log.length === 0 || log.length > MAX_LOG_LENGTH) {
+    throw new ApiError('invalid keystroke log');
+  }
+
+  const metrics = verifyAndCompute(session, log, duration);
+
+  return leaderboard.add({ name: body.name, language, ...metrics });
+}
+
+// Replays `log` against the session's full text (chunks joined exactly as the
+// client joins them: '\n\n') and returns server-computed metrics. Throws
+// ApiError(422) when the run fails the anti-smash / plausibility checks.
+function verifyAndCompute(session, log, duration) {
+  const text = session.chunks.join('\n\n');
+  const flat = text.split('');
+  const n = flat.length;
+  // 0 = pending, 1 = correct, 2 = incorrect (same semantics as app.js)
+  const charState = new Array(n).fill(0);
+  const events = []; // { t, ok } — typing keys only (no backspaces)
+  let pos = 0;
+  let prevT = -1;
+  let typingKeys = 0;
+  const maxT = duration * 1000 + 5000; // allow a little slack after the timer
+
+  for (const raw of log) {
+    if (!raw || typeof raw !== 'object') throw new ApiError('invalid keystroke log entry');
+    const t = Number(raw.t);
+    const k = raw.k;
+    if (!Number.isFinite(t) || t < 0 || t > maxT) throw new ApiError('invalid keystroke timestamp');
+    if (t < prevT) throw new ApiError('keystroke timestamps out of order');
+    prevT = t;
+    if (typeof k !== 'string' || k.length !== 1) throw new ApiError('invalid keystroke key');
+
+    if (k === '\b') {
+      if (pos > 0) {
+        pos -= 1;
+        charState[pos] = 0;
+      }
+      continue;
+    }
+
+    if (k === '\t') {
+      let adv = 0;
+      while (adv < TAB_WIDTH && pos + adv < n && flat[pos + adv] === ' ') adv++;
+      if (adv > 0) {
+        for (let i = 0; i < adv; i++) charState[pos + i] = 1;
+        pos += adv;
+        events.push({ t, ok: true });
+        typingKeys++;
+      }
+      continue;
+    }
+
+    // Printable (including '\n'). Keys past the served text were never
+    // counted by the client either, so drop them — they can't inflate a score.
+    if (pos >= n) continue;
+    const ok = k === flat[pos];
+    charState[pos] = ok ? 1 : 2;
+    pos += 1;
+    events.push({ t, ok });
+    typingKeys++;
+  }
+
+  // Ceiling sanity: sustained average key rate must be humanly plausible.
+  if (typingKeys / duration > MAX_AVG_KEYS_PER_SEC) {
+    throw new ApiError('keystroke rate too fast — score not accepted', 422);
+  }
+
+  // Anti-smash: any rolling 8-second window with >= 25 typing keys and more
+  // than 30% errors rejects the score. Events are time-sorted, so a sliding
+  // window ending at each key covers every possible 8s span.
+  let left = 0;
+  for (let i = 0; i < events.length; i++) {
+    while (events[i].t - events[left].t > SMASH_WINDOW_MS) left++;
+    const winLen = i - left + 1;
+    if (winLen < SMASH_MIN_KEYS) continue;
+    let errs = 0;
+    for (let j = left; j <= i; j++) if (!events[j].ok) errs++;
+    if (errs / winLen > SMASH_MAX_ERROR_RATE) {
+      // Deliberately vague: publishing the exact detection parameters would
+      // let someone calibrate their smashing to stay just under the limit.
+      throw new ApiError('score rejected: run flagged as button-smashing (too many errors in a short span)', 422);
+    }
+  }
+
+  let correct = 0;
+  let incorrect = 0;
+  let linesDone = 0;
+  for (let i = 0; i < n; i++) {
+    if (charState[i] === 1) {
+      correct++;
+      if (flat[i] === '\n') linesDone++;
+    } else if (charState[i] === 2) {
+      incorrect++;
+    }
+  }
+
+  const elapsedMin = duration / 60;
+  const wpm = Math.round(correct / 5 / elapsedMin);
+  const cpm = Math.round(correct / elapsedMin);
+  const lpm = round1(linesDone / elapsedMin);
+  const accuracy = round1(correct + incorrect ? (correct / (correct + incorrect)) * 100 : 100);
+  return { wpm, cpm, lpm, accuracy };
+}
+
+function round1(x) {
+  return Math.round(x * 10) / 10;
 }
 
 // Serve the "thock" sound-pack directory (config.json + audio files).
@@ -320,7 +497,7 @@ function readJsonBody(req) {
     let raw = '';
     req.on('data', (chunk) => {
       raw += chunk;
-      if (raw.length > 64 * 1024) {
+      if (raw.length > 512 * 1024) {
         reject(new Error('body too large'));
         req.destroy();
       }

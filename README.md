@@ -61,8 +61,24 @@ Zero dependencies — the server uses only Node's built-in modules.
 | **accuracy** | correct characters ÷ (correct + incorrect) characters in the final text × 100 — fixing a mistake restores accuracy; it only costs you speed |
 
 Speeds are computed live against elapsed time, and the final score uses the
-full timed duration. The leaderboard is stored in `data/leaderboard.json` and
-grows permanently — it survives restarts.
+full timed duration. **wpm/cpm count only characters you typed correctly**
+(net speed) — wrong keys left unfixed don't inflate the score, so mashing
+random keys is worthless.
+
+When you save, the client sends its **keystroke log** and the server *replays*
+it against the exact text it served, recomputes the metrics itself, and only
+then stores the score. Two fair-play checks apply server-side:
+
+- **Dedup** — the leaderboard shows each user's best score only once per
+  language (name matching is case-insensitive); worse attempts are stored in
+  history but never shown.
+- **Anti-smashing** — runs where a high share of keystrokes are wrong in a
+  short span are flagged as button-smashing and rejected server-side
+  (HTTP 422), and a live warning appears while you type if a run starts
+  looking smashing-like. The exact detection criteria are deliberately
+  unpublished so the check can't be calibrated to its limits.
+
+The leaderboard is stored in `data/leaderboard.json` and survives restarts.
 
 ---
 
@@ -186,9 +202,9 @@ The folder is scanned on every page load, so just drop files in and refresh.
 | route | description |
 | --- | --- |
 | `GET /api/languages` | available languages + block counts |
-| `GET /api/test?lang=python&len=1500` | randomized intact blocks joined as text |
-| `GET /api/leaderboard` | all scores, ranked by WPM |
-| `POST /api/scores` | `{ name, language, wpm, cpm, lpm, accuracy }` |
+| `GET /api/test?lang=python&len=1500[&token=…]` | randomized intact blocks joined as text. No `token`: starts a new test session and returns one (keep it). With `token`: appends another chunk to that session |
+| `GET /api/leaderboard` | best score per user per language, ranked by WPM |
+| `POST /api/scores` | `{ name, language, token, duration, log }` — `log` is the keystroke list (`{ t, k }`, ms since start); the server replays it, verifies it, computes wpm/cpm/lpm/accuracy itself, and enforces the anti-smash check |
 | `GET /api/reload` | re-read the dictionary tree |
 | `GET /api/music` | list tracks in the `music/` folder |
 
